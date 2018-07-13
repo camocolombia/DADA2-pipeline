@@ -11,6 +11,9 @@
 library("ggplot2")
 library("gridExtra")
 library("reshape")
+library("plyr")
+library("phyloseq")
+library("microbiome")
 
 #Defining paths to be analyzed
 # mainDir <- "E:/Dropbox/Dropbox/Paper_PhD"
@@ -38,6 +41,10 @@ seq_filt_dir <- paste0(seq_dir,"/","filter"); if(!file.exists(seq_filt_dir)){dir
 qual_pl_dir <- paste0(graph_dir,"/","qual_plot"); if(!file.exists(qual_pl_dir)){dir.create(qual_pl_dir)}
 program_dir <- paste0(mainDir,"/","software")
 script_dir <-  paste0(mainDir,"/","scripts")#Load de novo cleaned sequences
+
+
+production_dir <- paste0(dat_dir,"/","production"); if(!file.exists(production_dir)){dir.create(production_dir)}
+production <- read.csv(paste0(production_dir,"/","production_data.csv"),header=T,sep="|")
 
 seqtab.nochim <- readRDS(paste0(seq_dir,"/","seqtab.nochim.RDS"))
 
@@ -113,8 +120,15 @@ asv_tab <- t(seqtab.nochim)
 sequences_found <- row.names(asv_tab)
 row.names(asv_tab) <- sub(">", "", asv_headers)
 asv_tab <- as.data.frame(asv_tab)
+for(i in 1:ncol(asv_tab)){
+  asv_tab[,i] <- as.numeric(as.character(asv_tab[,i])) 
+};rm(i)
+
 asv_tab$seq <- NA; asv_tab$seq <- row.names(asv_tab) 
 asv_tab <- cbind(asv_tab[,ncol(asv_tab)],sequences_found,asv_tab[,c(1:(ncol(asv_tab)-1))]);colnames(asv_tab)[1:2] <-c("seq_id","sequence")
+
+
+
 write.table(asv_tab,  paste0(seq_dir,"/","ASVs_counts.csv"), sep=",", quote=F,row.names = F)
 
 
@@ -310,6 +324,41 @@ suggest_db_list$LEVELS_COVERED[which(suggest_db_list$LEVELS_COVERED==1)] <- NA
 asv5 <- cbind(asv4,suggest_db_list)
 write.csv(asv5,paste0(out_dir,"/","csv","/","taxonomy_final.csv"),row.names = F,quote = F,na = "")
 
+asv5$final_taxon <- NA
+for(i in 1:nrow(asv5)){
+  cat(i,"\n")
+if(is.na(asv5$LEVELS_COVERED[[i]])){
+  asv5$final_taxon[[i]] <- "Unclassified"
+} else if(asv5$LEVELS_COVERED[[i]]==1){
+  asv5$final_taxon[[i]] <- as.character(asv5$kingdom[[i]])
+} else if(asv5$LEVELS_COVERED[[i]]==2){
+  asv5$final_taxon[[i]] <- as.character(asv5$phylum[[i]])
+} else if(asv5$LEVELS_COVERED[[i]]==3){
+  asv5$final_taxon[[i]] <- as.character(asv5$class[[i]])
+} else if(asv5$LEVELS_COVERED[[i]]==4){
+  asv5$final_taxon[[i]] <- as.character(asv5$order[[i]])
+} else if(asv5$LEVELS_COVERED[[i]]==5){
+  asv5$final_taxon[[i]] <- as.character(asv5$family[[i]])
+} else if(asv5$LEVELS_COVERED[[i]]==6){
+  asv5$final_taxon[[i]] <- as.character(asv5$genus[[i]])
+} else if(asv5$LEVELS_COVERED[[i]]==7){
+  asv5$final_taxon[[i]] <- as.character(asv5$species[[i]])
+  } 
+};rm(i)
+
+asv_summary <- as.data.frame(rowSums(asv_tab[,-c(1,2)]))
+asv_summary$ID <- row.names(asv_summary)
+asv_summary <- asv_summary[,c(2,1)]
+colnames(asv_summary) <- c("ID","COUNT")
+asv_summary$REL <- NA; asv_summary$REL <- (asv_summary$COUNT/sum(asv_summary$COUNT,na.rm = T)*100)
+q1 <- quantile(x =asv_summary$COUNT,c(0.25,0.5,0.75))
+asv_summary$QUA <- NA;
+asv_summary$QUA[which(asv_summary$COUNT< as.numeric(q1[1]))] <- "OUT_BOTTOM"
+asv_summary$QUA[which(asv_summary$COUNT>= as.numeric(q1[1]) & asv_summary$COUNT< as.numeric(q1[2]))] <- "Q1"
+asv_summary$QUA[which(asv_summary$COUNT== as.numeric(q1[2]))] <- "Q2"
+asv_summary$QUA[which(asv_summary$COUNT> as.numeric(q1[2]) & asv_summary$COUNT< as.numeric(q1[3]))] <- "Q3"
+asv_summary$QUA[which(asv_summary$COUNT>= as.numeric(q1[3]))] <- "OUT_TOP"
+
 ########################################################
 ########################################################
 ########################################################
@@ -318,6 +367,8 @@ write.csv(asv5,paste0(out_dir,"/","csv","/","taxonomy_final.csv"),row.names = F,
 taxonomic_summary <- as.data.frame(matrix(ncol=28,nrow=1))
 lev_col <- asv4[,((ncol(asv4)-27):ncol(asv4))]
 colnames(taxonomic_summary) <- colnames(lev_col)
+
+
 
 for(i in 1:ncol(lev_col)){
   taxonomic_summary[1,i] <- length((na.omit(lev_col[,i])))/nrow(lev_col)*100
@@ -416,4 +467,233 @@ write.csv(taxonomic_summary_coverage,paste0(out_dir,"/","csv","/","taxonomic_sum
  ########################################################
  ########################################################
  ########################################################
+ production$Treatment <- gsub("bottom","Low feed efficiency",production$Treatment); production$Treatment <- gsub("top","High feed efficiency",production$Treatment)
  
+ samples.out <- rownames(seqtab.nochim)
+ #samples.out <- as.numeric(as.character(samples.out))
+ subject <- sapply(strsplit(samples.out, "D"), `[`, 1)
+ subject <- as.numeric(as.character(subject));subject2 <- as.data.frame(subject);colnames(subject2) <- "Reference.number"
+ prod <- join(subject2,production,by="Reference.number",match="all")
+ 
+ samdf <- data.frame(Subject=subject, Treatment=prod$Treatment,Phase=prod$Phase,Rumen=prod$Rumen.pH.)
+rownames(samdf) <- samples.out
+
+taxa <- cbind(as.character(asv5$kingdom),
+              as.character(asv5$phylum),
+              as.character(asv5$class),
+              as.character(asv5$order),
+              as.character(asv5$family),
+              as.character(asv5$genus),
+              as.character(asv5$species)
+)
+# header1 <- matrix(ncol = 3,nrow=nrow(asv5))
+# for(i in 1:nrow(asv5)){
+#   header1[i,1] <- as.character(paste(taxa[i,],collapse = ";"))
+#   header1[i,2] <- as.character(paste(asv5$sequence[i],collapse = ";"))
+#   header1[i,3] <- paste(header1[i,1],header1[i,2],sep ='"',collapse = ";")
+# };rm(i)
+
+row.names(taxa) <- as.character(asv5$sequence)
+colnames(taxa) <- c("Kingdom","Phylum","Class","Order","Family","Genus","Species")
+
+ps <- phyloseq(otu_table(seqtab.nochim, taxa_are_rows=FALSE), 
+               sample_data(samdf), 
+               tax_table(taxa))
+
+
+plot_richness(ps, x="Rumen", measures=c("Shannon", "Simpson"), color="Phase")
+
+
+# Transform data to proportions as appropriate for Bray-Curtis distances
+ps.prop <- transform_sample_counts(ps, function(otu) otu/sum(otu))
+ord.nmds.bray <- ordinate(ps.prop, method="NMDS", distance="bray")
+
+
+plot_ordination(ps.prop, ord.nmds.bray, color="Phase", title="Bray NMDS")
+
+ production$Treatment <- gsub("bottom","Low feed efficiency",production$Treatment); production$Treatment <- gsub("top","High feed efficiency",production$Treatment)
+ 
+ samples.out <- rownames(seqtab.nochim)
+ #samples.out <- as.numeric(as.character(samples.out))
+ subject <- sapply(strsplit(samples.out, "D"), `[`, 1)
+ subject <- as.numeric(as.character(subject));subject2 <- as.data.frame(subject);colnames(subject2) <- "Reference.number"
+ prod <- join(subject2,production,by="Reference.number",match="all")
+ 
+ samdf <- data.frame(Subject=subject, Treatment=prod$Treatment,Phase=prod$Phase,Rumen=prod$Rumen.pH.,ADG=prod$ADG,FCE=prod$FCE,ADI=prod$av.dailyintake,TWG=prod$total.wt.Gain)
+rownames(samdf) <- samples.out
+
+taxa <- cbind(as.character(asv5$kingdom),
+              as.character(asv5$phylum),
+              as.character(asv5$class),
+              as.character(asv5$order),
+              as.character(asv5$family),
+              as.character(asv5$genus),
+              as.character(asv5$species)
+)
+# header1 <- matrix(ncol = 3,nrow=nrow(asv5))
+# for(i in 1:nrow(asv5)){
+#   header1[i,1] <- as.character(paste(taxa[i,],collapse = ";"))
+#   header1[i,2] <- as.character(paste(asv5$sequence[i],collapse = ";"))
+#   header1[i,3] <- paste(header1[i,1],header1[i,2],sep ='"',collapse = ";")
+# };rm(i)
+
+row.names(taxa) <- as.character(asv5$sequence)
+colnames(taxa) <- c("Kingdom","Phylum","Class","Order","Family","Genus","Species")
+
+ps <- phyloseq(otu_table(seqtab.nochim, taxa_are_rows=FALSE), 
+               sample_data(samdf), 
+               tax_table(taxa))
+
+
+plot_richness(ps, x="Rumen", measures=c("Shannon", "Simpson"), color="Phase")
+
+
+# Transform data to proportions as appropriate for Bray-Curtis distances
+ps.prop <- transform_sample_counts(ps, function(otu) otu/sum(otu))
+ord.nmds.bray <- ordinate(ps.prop, method="NMDS", distance="bray")
+ord.nmds.CCA <- ordinate(ps, method="RDA")
+
+po_CCA <- plot_ordination(physeq = ps,ordination = ord.nmds.CCA,
+                      type="biplot", 
+                      color="Treatment",title="Bray NMDS",shape = "Phase")
+
+
+po <- plot_ordination(physeq = ps.prop,ordination = ord.nmds.bray,
+                      #type="samples", 
+                      color="Treatment",title="Bray NMDS",shape = "Phase")
+po <- po +   scale_shape_manual(values=c(16, 17))
+po <- po + scale_size_manual(values=c(9,9))
+po <- po + scale_fill_manual("Treatment", values = c("red","blue"))
+ po <- po +  theme(panel.background = element_rect(fill = "gray95"),
+                   text=element_text(size=60),axis.text.x  = element_text(size=60,colour="black",angle = 90, hjust = 1),
+                   axis.text.y  = element_text(size=60,colour="black"))#,
+
+#po <- po + scale_size_manual(values=60)
+#po + facet_wrap(~"Treatment", 3)
+
+
+ggsave(paste0(graph_dir,"/","ordination",".pdf"),po,dpi=300,width =90,height=80,units = "cm",scale=1.2,limitsize = FALSE)
+
+#https://benjjneb.github.io/dada2/tutorial.html
+
+
+top20 <- names(sort(taxa_sums(ps), decreasing=TRUE))[1:20]
+ps.top20 <- transform_sample_counts(ps, function(OTU) OTU/sum(OTU))
+ps.top20 <- prune_taxa(top20, ps.top20)
+plot_bar(ps.top20, x="Phase", fill="Family") + facet_wrap(~Treatment, scales="free_x")
+
+
+
+summarize_phyloseq(ps)
+taxonomy <- tax_table(ps)
+otu.absolute <- abundances(ps)
+otu.relative <- abundances(ps, "compositional")
+df <- psmelt(ps)
+kable(head(df))
+
+ps.compositional <- transform(ps, "compositional")
+g <- global(ps);
+g$Reference.number <- NA;g$Reference.number <- row.names(g)
+g2 <- join(prod,g,by="Reference.number",match="all")
+
+
+in_bp <- ggplot(data=g2,aes(x=Treatment,y=evenness_simpson,fill=Phase))+
+  geom_boxplot(position = "dodge",outlier.colour = NA,outlier.fill=NA,outlier.alpha=1,outlier.size =NA,na.rm = T) +
+  stat_boxplot(geom ='errorbar') +
+  #stat_summary(fun.y=mean, geom="line", aes(group=1))  +
+  #stat_summary(fun.y=mean, geom="point")+
+  #guides(fill=FALSE)+
+  #ylim(c(0,100))+
+  ylab("Simpson values")+ xlab("")+
+  ggtitle("")+
+  scale_fill_manual("legend", values = c("red","blue"))+
+  theme(panel.background = element_rect(fill = "gray95"),
+        text=element_text(size=60),axis.text.x  = element_text(size=60,colour="black",angle = 90, hjust = 1),
+        axis.text.y  = element_text(size=60,colour="black")#,
+        #legend.title=element_blank(),legend.position="none")
+  )
+ggsave(paste0(graph_dir,"/","simpson",".pdf"),in_bp,dpi=300,width =90,height=80,units = "cm",scale=1.2,limitsize = FALSE)
+
+
+boxplot(g2$evenness_simpson ~ g2$Treatment,fill=g2$Phase)
+# Estimate Shannon diversity and add it to the phyloseq object
+sample_data(ps)$diversity <- global(ps, index = "shannon")[,1]
+plot_regression(diversity ~ Treatment)
+
+# p <- prevalence(ps, detection = 0, sort = TRUE)
+ p.core <- core(ps, 
+                      detection = .2/100, prevalence = 50/100)
+# p.core
+# 
+# p <- plot_core(transform(p.core, "compositional"), 
+#                plot.type = "heatmap", 
+#                colours = gray(seq(0,1,length=5)),
+#                prevalences = seq(.05, 1, .05), 
+#                detections = 10^seq(log10(1e-3), log10(.2), length = 10), 
+#                horizontal = TRUE) +
+#   xlab("Detection Threshold (Relative Abundance (%))") 
+# print(p)  
+
+
+mp <- plot_composition(p.core, plot.type = "heatmap", transform = "Z", 
+                       mar = c(6, 13, 1, 1), sample.sort = "Treatment")
+plot_composition(transform(p.core, "compositional"), 
+                 plot.type = "barplot", sample.sort = "neatmap")
+
+
+
+GPUF <- (ps)
+
+
+# ig <- make_network(ps, max.dist = 1)
+# (p <- plot_network(ig, ps, color = "Treatment", shape = "Phase", 
+#                    line_weight = 0.4, label = NULL))
+
+
+GP <- prune_taxa(taxa_sums(ps) > 0, ps)
+human <- get_variable(GP, "Treatment")
+
+alpha_meas = c("Observed", "Chao1", "ACE", "Shannon", "Simpson", "InvSimpson","evenness_pielou","dominance_gini")
+(p <- plot_richness(GP, "Phase", "Treatment", measures=alpha_meas))
+p + geom_boxplot(data=p$data, aes(x=Phase, y=value, color=NULL,fill=Treatment), alpha=0.1)
+
+
+
+####
+
+ps.compositional <- transform(ps, "compositional")
+ps.core <- core(ps.compositional, 
+                      detection = .2/100, prevalence = 50/100)
+
+x <- ps.core
+quiet(x.ord <- ordinate(x, method = "NMDS", distance = "bray"))
+# Pick the projected data (first two columns + metadata)
+quiet(proj <- phyloseq::plot_ordination(x, x.ord, justDF=TRUE))
+# Rename the projection axes
+names(proj)[1:2] <- paste("Comp", 1:2, sep=".")
+
+p <- plot_landscape(proj[, 1:2], col = proj$Phase,legend = TRUE)
+print(p)
+
+
+
+log10(ps@tax_tableps)
+
+x <- as.data.frame(ps@otu_table);colnames(x) <- asv5$seq_id
+x <- sqrt(x)
+y <- ps@sam_data[,-c(1:3)]
+
+
+correlation.table <- associate(x, y, 
+                               method = "spearman", mode = "table", p.adj.threshold = 0.05, n.signif = 1)
+kable(head(correlation.table))
+
+correlation.table
+
+
+heat(correlation.table, "X1", "X2", fill = "Correlation", 
+     star = "p.adj", p.adj.threshold = 0.05) 
+
+
+
+
