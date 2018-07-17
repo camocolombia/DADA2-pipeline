@@ -280,6 +280,22 @@ asv4$RDP_LEVELS <- NA
 asv4$GG_LEVELS <- NA
 asv4$BLAST_LEVELS <- NA
 
+tax_labels <- c(colnames(asv_tab_silva2),colnames(asv_tab_rdp2),colnames(asv_tab_gg2),colnames(asv_tab_blast2))
+tax_labels <- tax_labels[-grep("seq_id",c(colnames(asv_tab_silva2),colnames(asv_tab_rdp2),colnames(asv_tab_gg2),colnames(asv_tab_blast2)))]
+for(i in 1:length(tax_labels)){
+  for(j in 1:nrow(asv4)){
+    cat("Col: ",tax_labels[[i]]," | row: ",j,"\n")
+    
+    if(is.na(asv4[j,tax_labels[[i]]])){
+      asv4[j,tax_labels[[i]]] <- NA
+    } else if(asv4[j,tax_labels[[i]]]==""){
+      asv4[j,tax_labels[[i]]] <- NA
+    } else {
+      asv4[j,tax_labels[[i]]] <- asv4[j,tax_labels[[i]]]
+    }
+  };rm(j)
+};rm(i)
+  
 for(i in 1:nrow(asv4)){
 asv4$SILVA_LEVELS[[i]] <- sum(!is.na(asv4[i,c("SILVA_kingdom","SILVA_phylum","SILVA_class","SILVA_order","SILVA_family","SILVA_genus","SILVA_species")]))
 asv4$RDP_LEVELS[[i]] <- sum(!is.na(asv4[i,c("RDP_kingdom","RDP_phylum","RDP_class","RDP_order","RDP_family","RDP_genus","RDP_species")]))
@@ -322,7 +338,6 @@ suggest_db_list$LEVELS_COVERED[which(suggest_db_list$LEVELS_COVERED==1)] <- NA
 
 #Saving final taxonomy table
 asv5 <- cbind(asv4,suggest_db_list)
-write.csv(asv5,paste0(out_dir,"/","csv","/","taxonomy_final.csv"),row.names = F,quote = F,na = "")
 
 asv5$final_taxon <- NA
 for(i in 1:nrow(asv5)){
@@ -346,6 +361,30 @@ if(is.na(asv5$LEVELS_COVERED[[i]])){
   } 
 };rm(i)
 
+asv5$LEVELS_COVERED[which(is.na(asv5$final_taxon))] <-7
+asv5$genus[which(is.na(asv5$final_taxon) & asv5$LEVELS_COVERED>1)] <- "Eubacterium"
+asv5$final_taxon[which(is.na(asv5$final_taxon) & asv5$LEVELS_COVERED>1)] <-   
+asv5$species[which(is.na(asv5$final_taxon) & asv5$LEVELS_COVERED>1)]
+
+
+
+asv5$final_taxon[which(asv5$final_taxon=="Unclassified")] <-
+paste0(asv5$final_taxon[which(asv5$final_taxon=="Unclassified")],"_",1:length(asv5$final_taxon[which(asv5$final_taxon=="Unclassified")]))
+
+asv5$LEVELS_COVERED[which(asv5$final_taxon=="Mitochondria")] <- 4
+asv5$family[which(asv5$final_taxon=="Mitochondria")] <-NA
+asv5$final_taxon[which(asv5$final_taxon=="Mitochondria")] <- "Rickettsiales"
+
+asv5$LEVELS_COVERED[which(asv5$final_taxon=="mitochondria")] <- 4
+asv5$family[which(asv5$final_taxon=="mitochondria")] <-NA
+asv5$final_taxon[which(asv5$final_taxon=="mitochondria")] <- "Rickettsiales"
+
+asv5$sequence_length <- NA
+for(i in 1:nrow(asv5)){
+  asv5$sequence_length[[i]] <-nchar(as.character(asv5$sequence[[i]]))
+};rm(i)
+write.csv(asv5,paste0(out_dir,"/","csv","/","taxonomy_final.csv"),row.names = F,quote = F,na = "")
+saveRDS(asv5,paste0(out_dir,"/","csv","/","taxonomy_final.RDS"))
 asv_summary <- as.data.frame(rowSums(asv_tab[,-c(1,2)]))
 asv_summary$ID <- row.names(asv_summary)
 asv_summary <- asv_summary[,c(2,1)]
@@ -365,7 +404,7 @@ asv_summary$QUA[which(asv_summary$COUNT>= as.numeric(q1[3]))] <- "OUT_TOP"
 
 ###Calculating coverage per db
 taxonomic_summary <- as.data.frame(matrix(ncol=28,nrow=1))
-lev_col <- asv4[,((ncol(asv4)-27):ncol(asv4))]
+lev_col <- asv4[,(((ncol(asv4)-4)-27):(ncol(asv4)-4))]
 colnames(taxonomic_summary) <- colnames(lev_col)
 
 
@@ -438,7 +477,7 @@ write.csv(taxonomic_summary_coverage,paste0(out_dir,"/","csv","/","taxonomic_sum
 ########################################################
 
 #Plotting coverage per taxonomic level
- lev_to_plot <- melt(taxonomic_summary_coverage[-7,-c(5)])
+ lev_to_plot <- melt(taxonomic_summary_coverage[-7,-c(5:6)])
  lev_to_plot$LEVEL <- factor(lev_to_plot$LEVEL,levels = levels)
  lev_to_plot<-lev_to_plot[order(
    lev_to_plot$LEVEL == "kingdom",
@@ -467,42 +506,21 @@ write.csv(taxonomic_summary_coverage,paste0(out_dir,"/","csv","/","taxonomic_sum
  ########################################################
  ########################################################
  ########################################################
- production$Treatment <- gsub("bottom","Low feed efficiency",production$Treatment); production$Treatment <- gsub("top","High feed efficiency",production$Treatment)
- 
- samples.out <- rownames(seqtab.nochim)
- #samples.out <- as.numeric(as.character(samples.out))
- subject <- sapply(strsplit(samples.out, "D"), `[`, 1)
- subject <- as.numeric(as.character(subject));subject2 <- as.data.frame(subject);colnames(subject2) <- "Reference.number"
- prod <- join(subject2,production,by="Reference.number",match="all")
- 
- samdf <- data.frame(Subject=subject, Treatment=prod$Treatment,Phase=prod$Phase,Rumen=prod$Rumen.pH.)
-rownames(samdf) <- samples.out
-
-taxa <- cbind(as.character(asv5$kingdom),
-              as.character(asv5$phylum),
-              as.character(asv5$class),
-              as.character(asv5$order),
-              as.character(asv5$family),
-              as.character(asv5$genus),
-              as.character(asv5$species)
-)
-# header1 <- matrix(ncol = 3,nrow=nrow(asv5))
-# for(i in 1:nrow(asv5)){
-#   header1[i,1] <- as.character(paste(taxa[i,],collapse = ";"))
-#   header1[i,2] <- as.character(paste(asv5$sequence[i],collapse = ";"))
-#   header1[i,3] <- paste(header1[i,1],header1[i,2],sep ='"',collapse = ";")
-# };rm(i)
-
-row.names(taxa) <- as.character(asv5$sequence)
-colnames(taxa) <- c("Kingdom","Phylum","Class","Order","Family","Genus","Species")
-
-ps <- phyloseq(otu_table(seqtab.nochim, taxa_are_rows=FALSE), 
-               sample_data(samdf), 
-               tax_table(taxa))
 
 
-plot_richness(ps, x="Rumen", measures=c("Shannon", "Simpson"), color="Phase")
 
+
+
+
+
+
+
+
+
+# 
+# 
+# plot_richness(ps, x="Rumen", measures=c("Shannon", "Simpson"), color="Phase")
+# 
 
 # Transform data to proportions as appropriate for Bray-Curtis distances
 ps.prop <- transform_sample_counts(ps, function(otu) otu/sum(otu))
@@ -536,17 +554,17 @@ taxa <- cbind(as.character(asv5$kingdom),
 #   header1[i,2] <- as.character(paste(asv5$sequence[i],collapse = ";"))
 #   header1[i,3] <- paste(header1[i,1],header1[i,2],sep ='"',collapse = ";")
 # };rm(i)
-
-row.names(taxa) <- as.character(asv5$sequence)
-colnames(taxa) <- c("Kingdom","Phylum","Class","Order","Family","Genus","Species")
-
-ps <- phyloseq(otu_table(seqtab.nochim, taxa_are_rows=FALSE), 
-               sample_data(samdf), 
-               tax_table(taxa))
-
-
-plot_richness(ps, x="Rumen", measures=c("Shannon", "Simpson"), color="Phase")
-
+# 
+# row.names(taxa) <- as.character(asv5$sequence)
+# colnames(taxa) <- c("Kingdom","Phylum","Class","Order","Family","Genus","Species")
+# 
+# ps <- phyloseq(otu_table(seqtab.nochim, taxa_are_rows=FALSE), 
+#                sample_data(samdf), 
+#                tax_table(taxa))
+# 
+# 
+# plot_richness(ps, x="Rumen", measures=c("Shannon", "Simpson"), color="Phase")
+# 
 
 # Transform data to proportions as appropriate for Bray-Curtis distances
 ps.prop <- transform_sample_counts(ps, function(otu) otu/sum(otu))
