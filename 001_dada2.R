@@ -193,7 +193,7 @@ derepRs <- derepFastq(filtRs, verbose=TRUE);names(derepRs) <- sampleNames
 saveRDS(derepRs,paste0(seq_dir,"/","R.RDS"))#;rm(derepRs);gc()
 
 # Name the derep-class objects by the sample names
-filtFs <- readRDS(paste0(seq_dir,"/","F.RDS"))
+# filtFs <- readRDS(paste0(seq_dir,"/","F.RDS"))
 
 #Training error rate to run dada2
 errF <- learnErrors(filtFs, multithread=TRUE)
