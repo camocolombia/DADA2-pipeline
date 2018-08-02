@@ -60,7 +60,7 @@ seqid<-cbind(as.character(asv5$seq_id),as.character(asv5$final_taxon))
 colnames(seqid) <- c("seqid","final_taxon")
 samples.out <- rownames(seqtab.nochim)
 #Importing tree
-tree_imp <- phyloseq::read_tree(paste0(seq_dir,"/","Tree_ML_20180716.nwk"),errorIfNULL = T)
+tree_imp <- phyloseq::read_tree(paste0(seq_dir,"/","pml.tree"),errorIfNULL = T);tree2 <- tree_imp
 labels_T <- as.data.frame(matrix(ncol=1,nrow=length(tree_imp$tip.label)));colnames(labels_T) <- c("seqid")
 labels_T$seqid <- tree_imp$tip.label
 labels_T <- merge(labels_T,seqid,by="seqid",all=T);labels_T$final_taxon <- as.character(labels_T$final_taxon)
@@ -70,7 +70,7 @@ tree_imp$tip.label <- gsub("_\\w+", "", tree_imp$tip.label)
 #groupInfo <- split(tree_imp$tip.label, gsub("_\\w+", "", tree_imp$tip.label))
 #OTU_t <- groupOTU(tree_imp, groupInfo)
 tree_plot <- ggtree(tree_imp, layout='rectangular') + geom_tiplab(size=0.5)#, aes(angle=angle))
-
+#write.tree(tree_imp,paste0(seq_dir,"/","pml_ft.tree")) 
 ggsave(paste0(graph_dir,"/","tree_plot",".pdf"),tree_plot,dpi=300,width =90,height=80,units = "cm",scale=0.2,limitsize = FALSE)
 boxplot(asv5$sequence_length ~ asv5$LEVELS_COVERED,ylab="Sequence length",xlab="Taxonomic rank")
 
@@ -109,9 +109,11 @@ colnames(seqtab.nochim) <- as.character(asv5$seq_id)
 #Formatting to phyloseq library
 ps <- phyloseq::phyloseq(otu_table(seqtab.nochim, taxa_are_rows=FALSE), 
                sample_data(samdf), 
-               tax_table(taxa)#,
-               #phy_tree(taxa))
+               tax_table(taxa),#,
+               phy_tree(tree2)
 )
+
+saveRDS(ps,paste0(csv_dir,"/","Phyloseq_object",".RDS"))
 
 sample_sum_df <- data.frame(sum = sample_sums(ps))
 
@@ -130,7 +132,11 @@ read_plot <- ggplot(sample_sum_df, aes(x = sum)) +
 ggsave(paste0(graph_dir,"/","seq_reads",".pdf"),read_plot,dpi=600,width =90,height=80,units = "cm",scale=0.8,limitsize = FALSE)
 
 
-
+treat_phase <- as.data.frame(cbind(samdf$Subject,paste(samdf$Treatment,samdf$Phase,sep = "_")))
+colnames(treat_phase) <- c("Subject","Treat_Phase")
+treat_phase$Subject <- as.character(treat_phase$Subject)
+ps_otu_hclust$labels <-merge(ps_otu_hclust$labels,treat_phase,by.x="x",by.y="Subject")[,2]
+plot(ps_otu_hclust)
 # #Stacked barplots
 # 
 # # Set colors for plotting
@@ -155,6 +161,13 @@ pserie_family <- ps %>%
   psmelt() %>%                                         # Melt to long format
   filter(Abundance > 0.05) %>%                         # Filter out low abundance taxa
   arrange(Family)                                      # Sort d
+#Genus
+pserie_genus <- ps %>%
+  tax_glom(taxrank = "Genus") %>%                     # agglomerate at phylum level
+  transform_sample_counts(function(x) {x/sum(x)} ) %>% # Transform to rel. abundance
+  psmelt() %>%                                         # Melt to long format
+  filter(Abundance > 0.05) %>%                         # Filter out low abundance taxa
+  arrange(Genus)                                      # Sort d
 #Species
 pserie_sp <- ps %>%
   tax_glom(taxrank = "Species") %>%                     # agglomerate at phylum level
@@ -188,7 +201,7 @@ ggsave(paste0(graph_dir,"/","phylum_graph",".pdf"),phylum_graph,dpi=600,width =9
 
 # Plot family
 family_graph <- ggplot(pserie_sp, aes(x = Treatment, y = Abundance, fill = reorder(Family, -Abundance))) + 
-  #facet_grid(Treatment~.) +
+  facet_grid(Kingdom~.) +
   geom_bar(stat = "identity",position = "dodge") +
   # scale_fill_manual(values = phylum_colors) +
   # scale_x_discrete(
@@ -260,7 +273,7 @@ ggsave(paste0(graph_dir,"/","sp_graph",".pdf"),sp_graph,dpi=600,width =90,height
 
 
 
-# plot(pserie_sp$Abundance,pserie_sp$FCR,col=pserie_sp$Treatment,pch=18)
+  # plot(pserie_sp$Abundance,pserie_sp$FCR,col=pserie_sp$Treatment,pch=18)
 # 
 # cor.test(pserie_sp$Abundance,pserie_sp$FCR)
 
@@ -287,14 +300,124 @@ ggsave(paste0(graph_dir,"/","sp_graph",".pdf"),sp_graph,dpi=600,width =90,height
 # 
 # 
 # 
+require(ade4)
+  ###Core microbiome
+ps_otu <- as.data.frame(otu_table(ps))
+for(i in 1:ncol(ps_otu)){
+ps_otu[,i][which(ps_otu[,i]>0)]<-1
+};rm(i)
+ps_otu2 <- ps_otu
+#ps_otu_dist <- dist(ps_otu,method = "binary")#vegdist(ps_otu,method = "jaccard",binary = T,na.rm = T)
+ps_otu_dist <- dist.binary(df = ps_otu,method = 1)#vegdist(ps_otu,method = "jaccard",binary = T,na.rm = T
+ps_otu$sample <- NA;ps_otu$sample <- row.names(ps_otu)
+ss <- merge(ps_otu,prod,by.x="sample",by.y="Reference.number",all=T)
+# ps_otu$Treatment <- NA;
+# ps_otu$Treatment <- ss$Treatment.y
 
-###Core microbiome
+#ps_otu$Treatment <- 
+ # merge(ps_otu,prod,by.x="sample",by.y="Reference.number")
 
+#ps_otu <- as.data.frame(ps_otu[,c(ncol(ps_otu)-1,(ncol(ps_otu)),1:(ncol(ps_otu)-2))])
+##################################################
+##################################################
+##################################################
+##################################################
+##################################################
+##################################################
+ht <- as.data.frame(t(ss[,c(1:(ncol(ps@otu_table))+1)][which(ss$Treatment=="High feed efficiency"),]))
+hrS <- rowSums(ht)
+ht$unique <- NA;ht$unique <- hrS
+
+lt <- as.data.frame(t(ss[,c(1:(ncol(ps@otu_table))+1)][which(ss$Treatment=="Low feed efficiency"),]))
+lrS <- rowSums(lt)
+lt$unique <- NA;lt$unique <- lrS
+
+
+summarise_group_unique <- as.data.frame(cbind(row.names(ht),ht$unique,lt$unique))
+colnames(summarise_group_unique) <- c("seq_id","High_efficiency","Low_efficiency")
+summarise_group_unique[,2] <- as.numeric(as.character(summarise_group_unique[,2])) 
+summarise_group_unique[,3] <- as.numeric(as.character(summarise_group_unique[,3])) 
+
+summarise_group_unique$delta <- NA; summarise_group_unique$delta <- summarise_group_unique[,2] - summarise_group_unique[,3]
+summarise_group_unique$taxon <- NA; summarise_group_unique$taxon <- merge(x = summarise_group_unique,y = asv5,by="seq_id",all=T)$phylum
+summarise_group_unique <-summarise_group_unique[!grepl("Unclassified",summarise_group_unique$taxon),]
+summarise_group_unique <- summarise_group_unique[order(summarise_group_unique$delta,decreasing = T),]
+
+
+summarise_group_unique <-   summarise_group_unique[which(
+summarise_group_unique$delta < quantile(summarise_group_unique$delta)[2]  | 
+summarise_group_unique$delta > quantile(summarise_group_unique$delta)[4]  
+),]
+
+summarise_group_unique <- summarise_group_unique[complete.cases(summarise_group_unique),]
+summarise_group_unique <- summarise_group_unique[order(summarise_group_unique$delta,decreasing = T),]
+#delta_values <- ggplot(data=summarise_group_unique,aes(x=factor(reorder(taxon, -delta)),y=delta,fill="black"))+
+
+summarise_group_unique_rel <- summarise_group_unique
+summarise_group_unique_rel$High_efficiency <- (summarise_group_unique_rel$High_efficiency /sum(summarise_group_unique_rel$High_efficiency))*100
+summarise_group_unique_rel$Low_efficiency <- (summarise_group_unique_rel$Low_efficiency /sum(summarise_group_unique_rel$Low_efficiency))*100
+summarise_group_unique_rel$High_efficiency[which(summarise_group_unique_rel$High_efficiency<0.05)]<- NA
+summarise_group_unique_rel$Low_efficiency[which(summarise_group_unique_rel$Low_efficiency<0.05)]<- NA
+summarise_group_unique_rel <- summarise_group_unique_rel[complete.cases(summarise_group_unique_rel),]
+
+summarise_group_unique_rel_total <- summarise_group_unique
+summarise_group_unique_rel_total$total <- NA; summarise_group_unique_rel_total$total <- summarise_group_unique_rel_total$High_efficiency + summarise_group_unique_rel_total$Low_efficiency
+summarise_group_unique_rel_total$total_rel <- NA;summarise_group_unique_rel_total$total_rel <- summarise_group_unique_rel_total$total/sum(summarise_group_unique_rel_total$total)*100
+summarise_group_unique_rel_total$total_rel[which(summarise_group_unique_rel_total$total_rel<0.05)]<- NA
+summarise_group_unique_rel_total <- 
+summarise_group_unique_rel_total[complete.cases(summarise_group_unique_rel_total),]
+
+taxon_list <- unique(summarise_group_unique_rel_total$taxon)
+taxon_summary <- do.call(rbind,lapply(1:length(taxon_list),function(i){
+  summarise_group_unique_rel_total[which(summarise_group_unique_rel_total$taxon==taxon_list[[i]]),]
+ x <- as.data.frame(t(colSums(summarise_group_unique_rel_total[which(summarise_group_unique_rel_total$taxon==taxon_list[[i]]),-c(1,5)])))
+ x$taxon <- NA; x$taxon <-as.character(taxon_list[[i]]);x <- x[,c(6,1:5)]
+ return(x)
+}))
+#t(cbind(as.character(taxon_list[[1]]),
+ 
+delta_values <- ggplot(data=taxon_summary,aes(x=factor(reorder(taxon, -delta)),y=delta,fill="black"))+
+  
+ geom_bar(stat="identity",position="dodge",show.legend = F)+
+  xlab("")+
+  ylab("Abundance change (High /Low Feed efficiency)")+
+  # ylim(0,0.1)+
+  geom_hline(yintercept=0.05, linetype="dashed", color = "black")+
+  theme(text=element_text(size=60),
+        legend.text=element_text(size=60),
+        axis.text.x  = element_text(size=60,angle=90,colour="black"),
+        axis.text.y  = element_text(size=60,angle=0,colour="black"))
+ # scale_y_continuous(limits = c(0,0.8),breaks=seq(0,0.8,0.05))
+#delta_values
+ggsave(paste0(graph_dir,"/","delta_values_graphics",".pdf"),delta_values,dpi=200,width =400,height=90,units = "cm",scale=1.2,limitsize = FALSE)
+
+##################################################
+##################################################
+##################################################
+##################################################
+##################################################
+##################################################
+mds <- cmdscale(ps_otu_dist, eig = TRUE, k = 2) 
+dpc_dist <- dudi.pco(ps_otu_dist, nf = 3, scannf = FALSE)
+scatter(dpc_dist)
+for_plot <- data.frame(dpc_dist$tab, group = gsub("\\d$", "", ss$Treatment),phase=ss$Phase)
+
+for_plot_pco <- data.frame(dpc_dist$co[,1:2], group = gsub("\\d$", "", ss$Treatment),phase=ss$Phase)
+
+ggplot(for_plot)+
+  geom_point(aes(x = X1,y = X2, color = group,shape=phase))
+
+
+ps_otu_hclust <- hclust(ps_otu_dist,"ward.D")
+ps_otu_hclust$labels
+
+
+plot(ps_otu_hclust)
 
 pp <- prevalence(ps, detection = 0, sort = TRUE)
 
 # dietswap is a phyloseq object; see above
-ps.compositional <- transform(ps, "compositional")
+ps.compositional <- microbiome::transform(ps, "compositional")
 # Taxa with over 50% prevance at .2% relative abundance
 ps.core <- core(ps.compositional, 
                       detection = .2/100, prevalence = 50/100)
@@ -303,7 +426,7 @@ ps.core <- core(ps.compositional,
 # Define data sets to cross-correlate
 
 x <- sqrt(ps@otu_table)   # OTU Log10 (44 samples x 130 genera)
-y <- as.matrix(ps@sam_data[,-c(1:6)]) # Lipids (44 samples x 389 lipids)
+y <- as.matrix(ps@sam_data[,-c(1:5)]) # Lipids (44 samples x 389 lipids)
 
 # Cross correlate data sets and return a table
 correlation.table <- associate(x, y, 
@@ -386,7 +509,7 @@ ggsave(paste0(graph_dir,"/","alpha_bp",".pdf"),alpha_bp,dpi=600,width =90,height
 
  
  
-p_test <- plot_richness(GP, "Treatment", "Phase")
+p_test <- plot_richness(ps, "Treatment", "Phase")
 
 prich <- plot_richness(ps, x="FCR", measures=c("Observed","Shannon", "Simpson"), color="Treatment",shape = "Phase")
 prich <- prich + scale_colour_manual(labels=c("High feed efficiency","Low feed efficiency"),values = c("blue","red"))+ 
@@ -496,7 +619,7 @@ set.seed(1)
 # Calculate bray curtis distance matrix
 ps_bray <- phyloseq::distance(ps.prop, method = "bray")
 hc_bray <- hclust(ps_bray,"ward.D")
-
+plot(hc_bray)
 
 # make a data frame from the sample_data
 sampledf <- data.frame(sample_data(ps),colour=prod$Treatment)
@@ -591,6 +714,24 @@ teplot <- ggplot(data=species_centroids, aes(label = species_names,x = RDA1,y=RD
   geom_text_repel()
 
 
+
+
+
+
+
+ps_tree2 <- plot_tree(ps, nodelabf=nodeplotboot(80,0,3),
+                      color="Treatment", 
+                      label.tips="taxa_names", 
+                      ladderize="left",
+                      shape="Phase")#+
+# coord_polar(theta="y")
+
+ps_tree2
+
+plot_tree(ps, color="Treatment", size="abundance", plot.margin=0.4)
+
+
+
 # data(atlas1006) 
 # atlas1006
 # data(dietswap) # Data from http://dx.doi.org/10.1038/ncomms7342
@@ -617,3 +758,10 @@ p <- plot_core(transform(dietswap.core, "compositional"),
                horizontal = TRUE) +
   xlab("Detection Threshold (Relative Abundance (%))") 
 print(p)  
+
+
+
+
+
+plot_bar(ps, "Order", fill="Family", facet_grid=Treatment~Phase)
+

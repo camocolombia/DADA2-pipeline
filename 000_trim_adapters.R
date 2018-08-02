@@ -5,7 +5,7 @@
 ##Trimming sequences using Trimmomatic and bbduk #
 ##################################################
 
-trim_adapters_function <-  function(program,code,program_dir,miseq_path,names_seq,seq_proc_dir_up,seq_proc_dir_p,primers){
+trim_adapters_function <-  function(program,code,program_dir,miseq_path,names_seq,seq_proc_dir_up,seq_proc_dir_p,primers,trimq,tpe,default,length_seqParameters){
   
   paired_name1 <- sub("_L001_R1_001.fastq.gz","_R1_paired.fastq.gz",names_seq[[1]])
   paired_name2 <- sub("_L001_R2_001.fastq.gz","_R2_paired.fastq.gz",names_seq[[2]])
@@ -49,19 +49,32 @@ trim_adapters_function <-  function(program,code,program_dir,miseq_path,names_se
     trim_folder <- paste0(program_dir,"/","bbmap")
     trim_version <- "bbduk.sh"
     
-    com <- paste0(paste0(trim_folder,"/",trim_version),' ','-Xmx2g',' ')
+    com <- paste0(paste0(trim_folder,"/",trim_version),' ','-Xmx1g',' ')
     in1 <- paste0('in1=',paste0(miseq_path,"/",names_seq[[1]]),' ')
     in2 <- paste0('in2=',paste0(miseq_path,"/",names_seq[[2]]),' ')
     out1 <- paste0('out1=',paste0(paste0(seq_proc_dir_p,"/",paired_name1),' '))
     out2 <- paste0('out2=',paste0(paste0(seq_proc_dir_p,"/",paired_name2),' '))
     literal <- paste0('literal=',"'",primers,"'",' ')
     ref <- paste0('ref=',trim_folder,"/","resources","/","adapters.fa",' ')
-    options <- paste0('trimq=10 ordered=t mink=2 ktrim=l rcomp=f k=10 qtrim=rl tbo tpe')
     
-    statement <- paste0(com,in1,in2,out1,out2,literal,ref,options)
     
-  }
+if(trimq==F){  trimq <- paste0('') } else { trimq <- paste0('qtrim=rl trimq=10 ')}
+    
+    if(is.null(length_seqParameters)){
+      length_seqParameters <- '' } else { length_seqParameters <- paste0(length_seqParameters,' ')}
+    
+if(default==F){
+options <- paste0('ordered=t mink=2 ktrim=l rcomp=f k=10 tbo')
+} else {
+  options <- paste0('ordered=t rcomp=f ktrim=l tbo')
+}
+
+if(tpe==T){tpe <- paste0(' tpe') }  else { tpe <- paste0('') }
+    
+  statement <- paste0(com,in1,in2,out1,out2,literal,ref,trimq,length_seqParameters,options,tpe)
   
+}
+
   write.table(statement,code,sep = "",quote = F,row.names = F,col.names = F)
   system(statement)
   return(statement)
