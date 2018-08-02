@@ -14,6 +14,7 @@ library("reshape")
 library("plyr")
 library("phyloseq")
 library("microbiome")
+library("dada2")
 
 #Defining paths to be analyzed
 # mainDir <- "E:/Dropbox/Dropbox/Paper_PhD"
@@ -47,35 +48,43 @@ production_dir <- paste0(dat_dir,"/","production"); if(!file.exists(production_d
 production <- read.csv(paste0(production_dir,"/","production_data.csv"),header=T,sep="|")
 
 seqtab.nochim <- readRDS(paste0(seq_dir,"/","seqtab.nochim.RDS"))
-
+###########################################################################
 #Assigning OTUs using SILVA
 if(!file.exists(paste0(seq_dir,"/","taxa_silva.RDS"))){
-taxa_silva <- assignTaxonomy(seqs=seqtab.nochim,
+taxa_silva <- dada2::assignTaxonomy(seqs=seqtab.nochim,
                              refFasta=paste0(taxadb_dir,"/","silva_nr_v132_train_set.fa.gz"), 
                              multithread = T,
                              verbose = FALSE,
-                             minBoot=80)
+                             minBoot=80,
+                             tryRC = T)
 saveRDS(taxa_silva,paste0(seq_dir,"/","taxa_silva.RDS"))
 
 } else {
   taxa_silva <- readRDS(paste0(seq_dir,"/","taxa_silva.RDS"))  
 }
 
-#Adding Species using SILVA
+#Assigning Species using SILVA
 if(!file.exists(paste0(seq_dir,"/","genus.species_silva.RDS"))){
-genus.species_silva <- assignSpecies(seqtab.nochim,paste0(taxadb_dir,"/","silva_species_assignment_v132.fa.gz"),n=1)
+#genus.species_silva <- assignSpecies(seqtab.nochim,
+  genus.species_silva <- dada2::addSpecies(taxa_silva,
+                                       paste0(taxadb_dir,"/","silva_species_assignment_v132.fa.gz"),
+                                     n=1,
+                                     tryRC = T)
+
 saveRDS(genus.species_silva,paste0(seq_dir,"/","genus.species_silva.RDS"))
 } else {
   genus.species_silva <- readRDS(paste0(seq_dir,"/","genus.species_silva.RDS"))  
 }
 
+###########################################################################
 #Assigning OTUs using RDP
 if(!file.exists(paste0(seq_dir,"/","taxa_rdp.RDS"))){
-taxa_rdp <- assignTaxonomy(seqs=seqtab.nochim,
+taxa_rdp <- dada2::assignTaxonomy(seqs=seqtab.nochim,
                            refFasta=paste0(taxadb_dir,"/","rdp_train_set_16.fa.gz"), 
                            multithread = T,
                            verbose = FALSE,
-                           minBoot=80)
+                           minBoot=80,
+                           tryRC = T)
 saveRDS(taxa_rdp,paste0(seq_dir,"/","taxa_rdp.RDS"))#;rm(derepRs);gc
 } else {
    taxa_rdp <- readRDS(paste0(seq_dir,"/","taxa_rdp.RDS"))
@@ -83,25 +92,62 @@ saveRDS(taxa_rdp,paste0(seq_dir,"/","taxa_rdp.RDS"))#;rm(derepRs);gc
 
 #Adding Species using RDP
 if(!file.exists(paste0(seq_dir,"/","genus.species_rdp.RDS"))){
-genus.species_rdp <- assignSpecies(seqtab.nochim,paste0(taxadb_dir,"/","rdp_species_assignment_16.fa.gz"),n=1)
+#genus.species_rdp <- dada2::assignSpecies(seqtab.nochim,
+genus.species_rdp <- dada2::addSpecies(taxa_rdp,
+                                   paste0(taxadb_dir,"/","rdp_species_assignment_16.fa.gz"),
+                                   n=1,
+                                   tryRC = T)
+                                   
 saveRDS(genus.species_rdp,paste0(seq_dir,"/","genus.species_rdp.RDS"))
 } else {
   genus.species_rdp <- readRDS(paste0(seq_dir,"/","genus.species_rdp.RDS"))
 }
 
-
+###########################################################################
 #Assigning OTUs using Greengenes
 if(!file.exists(paste0(seq_dir,"/","taxa_gg.RDS"))){
-taxa_gg <- assignTaxonomy(seqs=seqtab.nochim,
+taxa_gg <- dada2::assignTaxonomy(seqs=seqtab.nochim,
                           refFasta=paste0(taxadb_dir,"/","gg_13_8_train_set_97.fa.gz"), 
                           multithread = T,
                           verbose = FALSE,
-                          minBoot=80)
+                          minBoot=80,
+                          tryRC = T)
 saveRDS(taxa_gg,paste0(seq_dir,"/","taxa_gg.RDS"))#;rm(derepRs);gc()
 } else {
 taxa_gg <- readRDS(paste0(seq_dir,"/","taxa_gg.RDS"))
   
 }
+
+###########################################################################
+#Assigning OTUs using Hungate1000 Collection
+if(!file.exists(paste0(seq_dir,"/","taxa_hungate.RDS"))){
+  taxa_hungate <- dada2::assignTaxonomy(seqs=seqtab.nochim,
+                                   refFasta=paste0(taxadb_dir,"/","all_rumen_16S_RG_TrainSet.fasta"), 
+                                   multithread = T,
+                                   verbose = FALSE,
+                                   minBoot=80,
+                                   tryRC = T)
+  saveRDS(taxa_hungate,paste0(seq_dir,"/","taxa_hungate.RDS"))#;rm(derepRs);gc()
+} else {
+  taxa_hungate <- readRDS(paste0(seq_dir,"/","taxa_hungate.RDS"))
+  
+}
+
+#Adding Species Hungate1000 Collection
+if(!file.exists(paste0(seq_dir,"/","species_hungate.RDS"))){
+  #genus.species_rdp <- dada2::assignSpecies(seqtab.nochim,
+  genus.species_hungate <- dada2::addSpecies(taxa_hungate,
+                                         paste0(taxadb_dir,"/","all_rumen_16S_RG_RF_sp.fasta"),
+                                         n=1,
+                                         tryRC = T)
+  
+  saveRDS(genus.species_hungate,paste0(seq_dir,"/","species_hungate.RDS"))
+} else {
+  genus.species_hungate <- readRDS(paste0(seq_dir,"/","species_hungate.RDS"))
+}
+
+
+########################3333
 
 #Giving our seq headers more manageable names (ASV_1, ASV_2...)
 asv_seqs <- colnames(seqtab.nochim)
@@ -113,7 +159,7 @@ for (i in 1:dim(seqtab.nochim)[2]) {
 
 
 asv_fasta <- c(rbind(asv_headers, asv_seqs))
-write(asv_fasta, paste0(seq_dir,"/","ASVs.fa"))
+# write(asv_fasta, paste0(seq_dir,"/","ASVs.fa"))
 
 #Counting abundances
 asv_tab <- t(seqtab.nochim)
@@ -133,87 +179,37 @@ write.table(asv_tab,  paste0(seq_dir,"/","ASVs_counts.csv"), sep=",", quote=F,ro
 
 
 #Getting a SILVA taxonomy
-g_s <- unname(genus.species_silva); g_s <- paste0(g_s[,1]," ",g_s[,2])
-asv_tab_silva <- cbind(asv_tab,unname(taxa_silva),g_s)
-asv_tab_silva$g_s[which(asv_tab_silva$g_s=="NA NA")] <- NA
-asv_tab_silva$g_s <- sub("NA","",asv_tab_silva$g_s)
 
-for (i in 1:nrow(asv_tab_silva)){
-  if(sapply(strsplit(asv_tab_silva$g_s[[i]], " "), length)==1){
-    asv_tab_silva$g_s[[i]] <- NA
-  } else {
-    asv_tab_silva$g_s[[i]] <- asv_tab_silva$g_s[[i]]
-  }
-};rm(i)
+asv_tab_silva <- as.data.frame(unname(genus.species_silva))
+asv_tab_silva$sequence <- NA; asv_tab_silva$sequence <- row.names(genus.species_silva)
+s <-  as.character(merge(asv_tab_silva,asv_tab,"sequence",all = T)$seq_id)
+asv_tab_silva$seq_id <- NA; asv_tab_silva$seq_id <- s
+asv_tab_silva <- asv_tab_silva[,c(9,1:7)]
+colnames(asv_tab_silva) <- c("seq_id",levels)
 
-for (i in 1:nrow(asv_tab_silva)){
-  if(sapply(strsplit(asv_tab_silva$g_s[[i]], " "), length)==1){
-    asv_tab_silva$g_s[[i]] <- NA
-  } else {
-    asv_tab_silva$g_s[[i]] <- asv_tab_silva$g_s[[i]]
-  }
-};rm(i)
-
-pos = grep('aceae', asv_tab_silva$g_s)
-
-if(length(pos)>0){
-for (i in 1:length(pos)){
-  asv_tab_silva$g_s[pos[i]] <- NA
-  };rm(i)
-} else {
-  cat("No changes to do","\n")
-}
-
-asv_tab_silva <- as.data.frame(asv_tab_silva)
-lev_i <- (ncol(asv_tab_silva)-6):ncol(asv_tab_silva)
-
-for(i in 1:length(lev_i)){
-  colnames(asv_tab_silva)[lev_i[[i]]] <- as.character(levels[[i]])  
-};rm(i)
-
-write.csv(asv_tab_silva,paste0(out_dir,"/","csv","/","asv_tab_silva.csv"),row.names = F,quote = F,na = "")
+ write.csv(asv_tab_silva,paste0(out_dir,"/","csv","/","asv_tab_silva.csv"),row.names = F,quote = F,na = "")
 
 #Getting a RDP taxonomy
-g_s <- unname(genus.species_rdp); g_s <- paste0(g_s[,1]," ",g_s[,2])
-asv_tab_rdp <- cbind(asv_tab,unname(taxa_rdp),g_s)
-asv_tab_rdp$g_s[which(asv_tab_rdp$g_s=="NA NA")] <- NA
-asv_tab_rdp$g_s <- sub("NA","",asv_tab_rdp$g_s)
+ asv_tab_rdp <- as.data.frame(unname(genus.species_rdp))
+ asv_tab_rdp$sequence <- NA; asv_tab_rdp$sequence <- row.names(genus.species_rdp)
+ s <-  as.character(merge(asv_tab_rdp,asv_tab,"sequence",all = T)$seq_id)
+ asv_tab_rdp$seq_id <- NA; asv_tab_rdp$seq_id <- s
+ asv_tab_rdp <- asv_tab_rdp[,c(9,1:7)]
+ colnames(asv_tab_rdp) <- c("seq_id",levels)
+ 
+ write.csv(asv_tab_rdp,paste0(out_dir,"/","csv","/","asv_tab_rdp.csv"),row.names = F,quote = F,na = "")
 
-for (i in 1:nrow(asv_tab_rdp)){
-  if(sapply(strsplit(asv_tab_rdp$g_s[[i]], " "), length)==1){
-    asv_tab_rdp$g_s[[i]] <- NA
-  } else {
-    asv_tab_rdp$g_s[[i]] <- asv_tab_rdp$g_s[[i]]
-  }
-};rm(i)
-
-for (i in 1:nrow(asv_tab_rdp)){
-  if(sapply(strsplit(asv_tab_rdp$g_s[[i]], " "), length)==1){
-    asv_tab_rdp$g_s[[i]] <- NA
-  } else {
-    asv_tab_rdp$g_s[[i]] <- asv_tab_rdp$g_s[[i]]
-  }
-};rm(i)
-
-pos = grep('aceae', asv_tab_rdp$g_s)
-
-if(length(pos)>0){
-  for (i in 1:length(pos)){
-    asv_tab_rdp$g_s[pos[i]] <- NA
-  };rm(i)
-} else {
-  cat("No changes to do","\n")
-}
-
-asv_tab_rdp <- as.data.frame(asv_tab_rdp)
-lev_i <- (ncol(asv_tab_rdp)-6):ncol(asv_tab_rdp)
-
-for(i in 1:length(lev_i)){
-  colnames(asv_tab_rdp)[lev_i[[i]]] <- as.character(levels[[i]])  
-};rm(i)
-
-write.csv(asv_tab_rdp,paste0(out_dir,"/","csv","/","asv_tab_rdp.csv"),row.names = F,quote = F,na = "")
-
+ #Getting a Hungate taxonomy
+ asv_tab_hungate <- as.data.frame(unname(genus.species_hungate))
+ asv_tab_hungate$sequence <- NA; asv_tab_hungate$sequence <- row.names(genus.species_hungate)
+ s <-  as.character(merge(asv_tab_hungate,asv_tab,"sequence",all = T)$seq_id)
+ asv_tab_hungate$seq_id <- NA; asv_tab_hungate$seq_id <- s
+ asv_tab_hungate <- asv_tab_hungate[,c(9,1:7)]
+ colnames(asv_tab_hungate) <- c("seq_id",levels)
+ 
+ write.csv(asv_tab_hungate,paste0(out_dir,"/","csv","/","asv_tab_hungate.csv"),row.names = F,quote = F,na = "")
+ 
+ 
 #Getting a Greengenes taxonomy
 g <- unname(taxa_gg);colnames(g) <- levels
 asv_tab_gg <- cbind(asv_tab,g)
@@ -252,8 +248,6 @@ write.csv(asv_tab_gg,paste0(out_dir,"/","csv","/","asv_tab_gg.csv"),row.names = 
 blast_match <- read.csv(paste0(seq_dir,"/","16S_BLAST.csv"))
 blast_match <- blast_match[,c("QueryID","superkingdom","phylum","class","order","family","genus","species")]
 colnames(blast_match)[2] <- "kingdom"
-
-
 asv_tab_blast <- merge(asv_tab,blast_match,by.x="seq_id",by.y="QueryID")
 write.csv(asv_tab_blast,paste0(out_dir,"/","csv","/","asv_tab_blast.csv"),row.names = F,quote = F,na = "")
 
@@ -262,26 +256,30 @@ asv_tab_silva2 <- asv_tab_silva[,c("seq_id","kingdom","phylum","class","order","
 asv_tab_rdp2 <- asv_tab_rdp[,c("seq_id","kingdom","phylum","class","order","family","genus","species")]
 asv_tab_gg2 <- asv_tab_gg[,c("seq_id","kingdom","phylum","class","order","family","genus","species")]
 asv_tab_blast2 <- asv_tab_blast[,c("seq_id","kingdom","phylum","class","order","family","genus","species")]
+asv_tab_hungate2 <- asv_tab_hungate[,c("seq_id","kingdom","phylum","class","order","family","genus","species")]
 
 colnames(asv_tab_silva2) <- c("seq_id","SILVA_kingdom","SILVA_phylum","SILVA_class","SILVA_order","SILVA_family","SILVA_genus","SILVA_species")
 colnames(asv_tab_rdp2) <- c("seq_id","RDP_kingdom","RDP_phylum","RDP_class","RDP_order","RDP_family","RDP_genus","RDP_species")
 colnames(asv_tab_gg2) <- c("seq_id","GG_kingdom","GG_phylum","GG_class","GG_order","GG_family","GG_genus","GG_species")
 colnames(asv_tab_blast2) <- c("seq_id","BLAST_kingdom","BLAST_phylum","BLAST_class","BLAST_order","BLAST_family","BLAST_genus","BLAST_species")
+colnames(asv_tab_hungate2) <- c("seq_id","HUNGATE_kingdom","HUNGATE_phylum","HUNGATE_class","HUNGATE_order","HUNGATE_family","HUNGATE_genus","HUNGATE_species")
 
 
-asv1 <- merge(asv_tab,asv_tab_silva2,by="seq_id",all=T)
-asv2 <- merge(asv1,asv_tab_rdp2,by="seq_id",all=T)
-asv3 <- merge(asv2,asv_tab_gg2,by="seq_id",all=T)
-asv4 <- merge(asv3,asv_tab_blast2,by="seq_id",all=T)
+asv0 <- merge(asv_tab,asv_tab_silva2,by="seq_id",all=T)
+asv1 <- merge(asv0,asv_tab_rdp2,by="seq_id",all=T)
+asv2 <- merge(asv1,asv_tab_gg2,by="seq_id",all=T)
+asv3 <- merge(asv2,asv_tab_blast2,by="seq_id",all=T)
+asv4 <- merge(asv3,asv_tab_hungate2,by="seq_id",all=T)
 
 #Detecting taxonomic levels covered by taxonomic db
 asv4$SILVA_LEVELS <- NA
 asv4$RDP_LEVELS <- NA
 asv4$GG_LEVELS <- NA
 asv4$BLAST_LEVELS <- NA
+asv4$HUNGATE_LEVELS <- NA
 
-tax_labels <- c(colnames(asv_tab_silva2),colnames(asv_tab_rdp2),colnames(asv_tab_gg2),colnames(asv_tab_blast2))
-tax_labels <- tax_labels[-grep("seq_id",c(colnames(asv_tab_silva2),colnames(asv_tab_rdp2),colnames(asv_tab_gg2),colnames(asv_tab_blast2)))]
+tax_labels <- c(colnames(asv_tab_silva2),colnames(asv_tab_rdp2),colnames(asv_tab_gg2),colnames(asv_tab_blast2),colnames(asv_tab_hungate2))
+tax_labels <- tax_labels[-grep("seq_id",c(colnames(asv_tab_silva2),colnames(asv_tab_rdp2),colnames(asv_tab_gg2),colnames(asv_tab_blast2),colnames(asv_tab_hungate2)))]
 for(i in 1:length(tax_labels)){
   for(j in 1:nrow(asv4)){
     cat("Col: ",tax_labels[[i]]," | row: ",j,"\n")
@@ -301,7 +299,9 @@ asv4$SILVA_LEVELS[[i]] <- sum(!is.na(asv4[i,c("SILVA_kingdom","SILVA_phylum","SI
 asv4$RDP_LEVELS[[i]] <- sum(!is.na(asv4[i,c("RDP_kingdom","RDP_phylum","RDP_class","RDP_order","RDP_family","RDP_genus","RDP_species")]))
 asv4$GG_LEVELS[[i]] <- sum(!is.na(asv4[i,c("GG_kingdom","GG_phylum","GG_class","GG_order","GG_family","GG_genus","GG_species")]))
 asv4$BLAST_LEVELS[[i]] <- sum(!is.na(asv4[i,c("BLAST_kingdom","BLAST_phylum","BLAST_class","BLAST_order","BLAST_family","BLAST_genus","BLAST_species")]))
-  };rm(i)
+asv4$HUNGATE_LEVELS[[i]] <- sum(!is.na(asv4[i,c("HUNGATE_kingdom","HUNGATE_phylum","HUNGATE_class","HUNGATE_order","HUNGATE_family","HUNGATE_genus","HUNGATE_species")]))
+
+};rm(i)
 
 write.csv(asv4,paste0(out_dir,"/","csv","/","taxonomy_4DB.csv"),row.names = F,quote = F,na = "")
 
@@ -312,7 +312,7 @@ write.csv(asv4,paste0(out_dir,"/","csv","/","taxonomy_4DB.csv"),row.names = F,qu
 #Suggesting taxonomy
 suggest_db_list <-lapply(1:nrow(asv4),function(i){
 cat(i,"\n")
-x <- asv4[i,c("SILVA_LEVELS","RDP_LEVELS","GG_LEVELS","BLAST_LEVELS")]
+x <- asv4[i,c("SILVA_LEVELS","RDP_LEVELS","GG_LEVELS","BLAST_LEVELS","HUNGATE_LEVELS")]
 
 lab_x <- colnames(x)[apply(x,1,which.max)]
 lab_x <- sub("_LEVELS","",lab_x)
@@ -366,8 +366,6 @@ asv5$genus[which(is.na(asv5$final_taxon) & asv5$LEVELS_COVERED>1)] <- "Eubacteri
 asv5$final_taxon[which(is.na(asv5$final_taxon) & asv5$LEVELS_COVERED>1)] <-   
 asv5$species[which(is.na(asv5$final_taxon) & asv5$LEVELS_COVERED>1)]
 
-
-
 asv5$final_taxon[which(asv5$final_taxon=="Unclassified")] <-
 paste0(asv5$final_taxon[which(asv5$final_taxon=="Unclassified")],"_",1:length(asv5$final_taxon[which(asv5$final_taxon=="Unclassified")]))
 
@@ -383,7 +381,37 @@ asv5$sequence_length <- NA
 for(i in 1:nrow(asv5)){
   asv5$sequence_length[[i]] <-nchar(as.character(asv5$sequence[[i]]))
 };rm(i)
-write.csv(asv5,paste0(out_dir,"/","csv","/","taxonomy_final.csv"),row.names = F,quote = F,na = "")
+
+asv5$species <- as.character(asv5$species)
+for(i in 1:nrow(asv5)){
+  cat(i,"\n")
+  
+  if(is.na(asv5$LEVELS_COVERED[[i]])){
+    asv5$final_taxon[[i]] <- asv5$final_taxon[[i]]
+  } else if (asv5$LEVELS_COVERED[[i]]!=7){
+    asv5$final_taxon[[i]] <- asv5$final_taxon[[i]]
+  } else if(asv5$LEVELS_COVERED[[i]]==7 & asv5$suggested_db[[i]]=="HUNGATE"){
+    asv5$final_taxon[[i]] <- paste(asv5$genus[[i]],asv5$species[[i]],sep = " ")
+    asv5$species[[i]] <- as.character(asv5$final_taxon[[i]]) 
+  } else if(asv5$LEVELS_COVERED[[i]]==7 & asv5$suggested_db[[i]]=="RDP"){
+    asv5$final_taxon[[i]] <- paste(asv5$genus[[i]],asv5$species[[i]],sep = " ")
+    asv5$species[[i]] <-  as.character(asv5$final_taxon[[i]]) 
+    } else if(asv5$LEVELS_COVERED[[i]]==7 & asv5$suggested_db[[i]]=="SILVA"){
+    asv5$final_taxon[[i]] <- paste(asv5$genus[[i]],asv5$species[[i]],sep = " ")
+    asv5$species[[i]] <-  as.character(asv5$final_taxon[[i]])  
+  } else if(asv5$LEVELS_COVERED[[i]]==7 & asv5$suggested_db[[i]]=="BLAST"){
+    asv5$final_taxon[[i]] <- asv5$final_taxon[[i]]
+  } else if(asv5$LEVELS_COVERED[[i]]==7 & asv5$suggested_db[[i]]=="GG"){
+    asv5$final_taxon[[i]] <- asv5$final_taxon[[i]]}
+};rm(i) 
+
+  write.csv(asv5,paste0(out_dir,"/","csv","/","taxonomy_final.csv"),row.names = F,quote = F,na = "")
+####Taxonomic coverage
+
+
+
+
+
 saveRDS(asv5,paste0(out_dir,"/","csv","/","taxonomy_final.RDS"))
 asv_summary <- as.data.frame(rowSums(asv_tab[,-c(1,2)]))
 asv_summary$ID <- row.names(asv_summary)
@@ -403,8 +431,8 @@ asv_summary$QUA[which(asv_summary$COUNT>= as.numeric(q1[3]))] <- "OUT_TOP"
 ########################################################
 
 ###Calculating coverage per db
-taxonomic_summary <- as.data.frame(matrix(ncol=28,nrow=1))
-lev_col <- asv4[,(((ncol(asv4)-4)-27):(ncol(asv4)-4))]
+taxonomic_summary <- as.data.frame(matrix(ncol=35,nrow=1))
+lev_col <- asv4[,(((ncol(asv4)-4)-35):(ncol(asv4)-5))]
 colnames(taxonomic_summary) <- colnames(lev_col)
 
 
@@ -413,13 +441,13 @@ for(i in 1:ncol(lev_col)){
   taxonomic_summary[1,i] <- length((na.omit(lev_col[,i])))/nrow(lev_col)*100
 };rm(i,lev_col)
 
-taxonomic_summary$kingdom <- NA; taxonomic_summary$kingdom <-median(taxonomic_summary$SILVA_kingdom,taxonomic_summary$RDP_kingdom,taxonomic_summary$GG_kingdom,taxonomic_summary$BLAST_kingdom,na.rm=T)
-taxonomic_summary$phylum <- NA; taxonomic_summary$phylum <-median(taxonomic_summary$SILVA_phylum,taxonomic_summary$RDP_phylum,taxonomic_summary$GG_phylum,taxonomic_summary$BLAST_phylum,na.rm=T)
-taxonomic_summary$class <- NA; taxonomic_summary$class <-median(taxonomic_summary$SILVA_class,taxonomic_summary$RDP_class,taxonomic_summary$GG_class,taxonomic_summary$BLAST_class,na.rm=T)
-taxonomic_summary$order <- NA; taxonomic_summary$order <-median(taxonomic_summary$SILVA_order,taxonomic_summary$RDP_order,taxonomic_summary$GG_order,taxonomic_summary$BLAST_order,na.rm=T)
-taxonomic_summary$family <- NA; taxonomic_summary$family <-median(taxonomic_summary$SILVA_family,taxonomic_summary$RDP_family,taxonomic_summary$GG_family,taxonomic_summary$BLAST_family,na.rm=T)
-taxonomic_summary$genus <- NA; taxonomic_summary$genus <-median(taxonomic_summary$SILVA_genus,taxonomic_summary$RDP_genus,taxonomic_summary$GG_genus,taxonomic_summary$BLAST_genus,na.rm=T)
-taxonomic_summary$species <- NA; taxonomic_summary$species <-median(taxonomic_summary$SILVA_species,taxonomic_summary$RDP_species,taxonomic_summary$GG_species,taxonomic_summary$BLAST_species,na.rm=T)
+taxonomic_summary$kingdom <- NA; taxonomic_summary$kingdom <-median(taxonomic_summary$SILVA_kingdom,taxonomic_summary$RDP_kingdom,taxonomic_summary$GG_kingdom,taxonomic_summary$BLAST_kingdom,taxonomic_summary$HUNGATE_kingdom,na.rm=T)
+taxonomic_summary$phylum <- NA; taxonomic_summary$phylum <-median(taxonomic_summary$SILVA_phylum,taxonomic_summary$RDP_phylum,taxonomic_summary$GG_phylum,taxonomic_summary$BLAST_phylum,taxonomic_summary$HUNGATE_phylum,na.rm=T)
+taxonomic_summary$class <- NA; taxonomic_summary$class <-median(taxonomic_summary$SILVA_class,taxonomic_summary$RDP_class,taxonomic_summary$GG_class,taxonomic_summary$BLAST_class,taxonomic_summary$HUNGATE_class,na.rm=T)
+taxonomic_summary$order <- NA; taxonomic_summary$order <-median(taxonomic_summary$SILVA_order,taxonomic_summary$RDP_order,taxonomic_summary$GG_order,taxonomic_summary$BLAST_order,taxonomic_summary$HUNGATE_order,na.rm=T)
+taxonomic_summary$family <- NA; taxonomic_summary$family <-median(taxonomic_summary$SILVA_family,taxonomic_summary$RDP_family,taxonomic_summary$GG_family,taxonomic_summary$BLAST_family,taxonomic_summary$HUNGATE_family,na.rm=T)
+taxonomic_summary$genus <- NA; taxonomic_summary$genus <-median(taxonomic_summary$SILVA_genus,taxonomic_summary$RDP_genus,taxonomic_summary$GG_genus,taxonomic_summary$BLAST_genus,taxonomic_summary$HUNGATE_genus,na.rm=T)
+taxonomic_summary$species <- NA; taxonomic_summary$species <-median(taxonomic_summary$SILVA_species,taxonomic_summary$RDP_species,taxonomic_summary$GG_species,taxonomic_summary$BLAST_species,taxonomic_summary$HUNGATE_species,na.rm=T)
 
 taxonomic_summary_coverage <- as.data.frame(matrix(ncol=6,nrow=7))
 
@@ -427,48 +455,55 @@ taxonomic_summary_coverage[1,1] <- taxonomic_summary$SILVA_kingdom
 taxonomic_summary_coverage[1,2] <- taxonomic_summary$RDP_kingdom
 taxonomic_summary_coverage[1,3] <- taxonomic_summary$GG_kingdom
 taxonomic_summary_coverage[1,4] <- taxonomic_summary$BLAST_kingdom
-taxonomic_summary_coverage[1,5] <- taxonomic_summary$kingdom
+taxonomic_summary_coverage[1,5] <- taxonomic_summary$HUNGATE_kingdom
+taxonomic_summary_coverage[1,6] <- taxonomic_summary$kingdom
 #
 taxonomic_summary_coverage[2,1] <- taxonomic_summary$SILVA_phylum
 taxonomic_summary_coverage[2,2] <- taxonomic_summary$RDP_phylum
 taxonomic_summary_coverage[2,3] <- taxonomic_summary$GG_phylum
 taxonomic_summary_coverage[2,4] <- taxonomic_summary$BLAST_phylum
-taxonomic_summary_coverage[2,5] <- taxonomic_summary$phylum
+taxonomic_summary_coverage[2,5] <- taxonomic_summary$HUNGATE_phylum
+taxonomic_summary_coverage[2,6] <- taxonomic_summary$phylum
 #
 taxonomic_summary_coverage[3,1] <- taxonomic_summary$SILVA_class
 taxonomic_summary_coverage[3,2] <- taxonomic_summary$RDP_class
 taxonomic_summary_coverage[3,3] <- taxonomic_summary$GG_class
 taxonomic_summary_coverage[3,4] <- taxonomic_summary$BLAST_class
-taxonomic_summary_coverage[3,5] <- taxonomic_summary$class
+taxonomic_summary_coverage[3,5] <- taxonomic_summary$HUNGATE_class
+taxonomic_summary_coverage[3,6] <- taxonomic_summary$class
 #
 taxonomic_summary_coverage[4,1] <- taxonomic_summary$SILVA_order
 taxonomic_summary_coverage[4,2] <- taxonomic_summary$RDP_order
 taxonomic_summary_coverage[4,3] <- taxonomic_summary$GG_order
 taxonomic_summary_coverage[4,4] <- taxonomic_summary$BLAST_order
-taxonomic_summary_coverage[4,5] <- taxonomic_summary$order
+taxonomic_summary_coverage[4,5] <- taxonomic_summary$HUNGATE_order
+taxonomic_summary_coverage[4,6] <- taxonomic_summary$order
 #
 taxonomic_summary_coverage[5,1] <- taxonomic_summary$SILVA_family
 taxonomic_summary_coverage[5,2] <- taxonomic_summary$RDP_family
 taxonomic_summary_coverage[5,3] <- taxonomic_summary$GG_family
 taxonomic_summary_coverage[5,4] <- taxonomic_summary$BLAST_family
-taxonomic_summary_coverage[5,5] <- taxonomic_summary$family
+taxonomic_summary_coverage[5,5] <- taxonomic_summary$HUNGATE_family
+taxonomic_summary_coverage[5,6] <- taxonomic_summary$family
 #
 taxonomic_summary_coverage[6,1] <- taxonomic_summary$SILVA_genus
 taxonomic_summary_coverage[6,2] <- taxonomic_summary$RDP_genus
 taxonomic_summary_coverage[6,3] <- taxonomic_summary$GG_genus
 taxonomic_summary_coverage[6,4] <- taxonomic_summary$BLAST_genus
-taxonomic_summary_coverage[6,5] <- taxonomic_summary$genus
+taxonomic_summary_coverage[6,5] <- taxonomic_summary$HUNGATE_genus
+taxonomic_summary_coverage[6,6] <- taxonomic_summary$genus
 #
 taxonomic_summary_coverage[7,1] <- taxonomic_summary$SILVA_species
 taxonomic_summary_coverage[7,2] <- taxonomic_summary$RDP_species
 taxonomic_summary_coverage[7,3] <- taxonomic_summary$GG_species
 taxonomic_summary_coverage[7,4] <- taxonomic_summary$BLAST_species
-taxonomic_summary_coverage[7,5] <- taxonomic_summary$species
+taxonomic_summary_coverage[7,5] <- taxonomic_summary$HUNGATE_species
+taxonomic_summary_coverage[7,6] <- taxonomic_summary$species
 #
-taxonomic_summary_coverage[,6] <- levels
+taxonomic_summary_coverage[,7] <- levels
 #
 taxonomic_summary_coverage <- cbind(taxonomic_summary_coverage[,ncol(taxonomic_summary_coverage)],taxonomic_summary_coverage[,c(1:(ncol(taxonomic_summary_coverage)-1))])
-colnames(taxonomic_summary_coverage) <- c("LEVEL","SILVA","RDP","GREENGENES","BLAST","MEDIAN")
+colnames(taxonomic_summary_coverage) <- c("LEVEL","SILVA","RDP","GREENGENES","BLAST","HUNGATE","MEDIAN")
 
 write.csv(taxonomic_summary_coverage,paste0(out_dir,"/","csv","/","taxonomic_summary_coverage.csv"),row.names = F,quote = F,na = "")
 
@@ -477,7 +512,7 @@ write.csv(taxonomic_summary_coverage,paste0(out_dir,"/","csv","/","taxonomic_sum
 ########################################################
 
 #Plotting coverage per taxonomic level
- lev_to_plot <- melt(taxonomic_summary_coverage[-7,-c(5:6)])
+ lev_to_plot <- melt(taxonomic_summary_coverage[,-7])#melt(taxonomic_summary_coverage[-7,-c(5,7)])
  lev_to_plot$LEVEL <- factor(lev_to_plot$LEVEL,levels = levels)
  lev_to_plot<-lev_to_plot[order(
    lev_to_plot$LEVEL == "kingdom",
@@ -486,6 +521,7 @@ write.csv(taxonomic_summary_coverage,paste0(out_dir,"/","csv","/","taxonomic_sum
    lev_to_plot$LEVEL == "order",
    lev_to_plot$LEVEL == "family",
    lev_to_plot$LEVEL == "genus",
+   lev_to_plot$LEVEL == "species",
    decreasing = T),]
  colnames(lev_to_plot) <- c("Level","Database","value")
  coverage_tax_plot <- ggplot(data=lev_to_plot,aes(x=Level,y=value,fill=Database))+
@@ -715,3 +751,6 @@ heat(correlation.table, "X1", "X2", fill = "Correlation",
 
 
 
+plot_heatmap(ps)
+plot_heatmap(ps, "NMDS", "bray", "Treatment", "Family", low="#000033", high="#FF3300", na.value="white")
+heatmap(otu_table(ps))

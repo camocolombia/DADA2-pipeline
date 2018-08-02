@@ -40,7 +40,7 @@ program_dir <- paste0(mainDir,"/","software")
 script_dir <-  paste0(mainDir,"/","scripts")
 
 #Reading AVS fasta fies
-seq <- Biostrings::readDNAStringSet(paste0(seq_dir,"/","ASVs.fa"),format="fasta")
+seq <- Biostrings::readDNAStringSet(paste0(seq_dir,"/","ASVs.fasta"),format="fasta")
 bl <- blast(db=paste0(blast_folder,"/","16SMicrobial"))
 
 #Running BLAST
