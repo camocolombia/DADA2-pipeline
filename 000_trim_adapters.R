@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 ##################################################
 ###Chrystian C. Sosa 2018 Chapter 1              #
 ##2018-06-29                                     #
@@ -167,8 +166,4 @@ if(tpe==T){tpe <- paste0(' tpe') }  else { tpe <- paste0('') }
   return(statement)
   cat("   ","\n");print('Done...');cat("   ","\n")
 }
-
-
-
->>>>>>> 9848fdeb301491061dfcb7d8f57b257d0432bd81
 #x <- trim_adapters_function (code = paste0(seq_proc_dir,"/","trim.txt"),trim_folder,trim_version,miseq_path,names_seq,seq_proc_dir_up,seq_proc_dir_p)
