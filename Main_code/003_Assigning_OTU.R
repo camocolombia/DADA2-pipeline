@@ -301,14 +301,33 @@ write.csv(asv4,paste0(out_dir,"/","csv","/","taxonomy_4DB.csv"),row.names = F,qu
 ########################################################
 ########################################################
 ########################################################
-
+#i <- 378
 #Suggesting taxonomy
 suggest_db_list <-lapply(1:nrow(asv4),function(i){
 cat(i,"\n")
 x <- asv4[i,c("SILVA_LEVELS","RDP_LEVELS","GG_LEVELS","BLAST_LEVELS","HUNGATE_LEVELS")]
-
-lab_x <- colnames(x)[apply(x,1,which.max)]
+x <- x[which(x==max(x))]
+lab_x <- colnames(x)
 lab_x <- sub("_LEVELS","",lab_x)
+
+#if(sum(x==max(x))>1){
+if(any(lab_x=="BLAST" |
+   lab_x=="HUNGATE")){
+  
+
+  
+  if(any(lab_x=="BLAST") &
+         any(lab_x=="HUNGATE")
+) {   lab_x <- "HUNGATE"
+} else if(any(lab_x=="BLAST") &
+          !any(lab_x=="HUNGATE")
+) {   lab_x <- "BLAST"
+} else if(!any(lab_x=="BLAST") &
+          any(lab_x=="HUNGATE")
+          ) {   lab_x <- "HUNGATE"
+}
+
+lab_x <- lab_x
 x2  <- asv4[i,grepl(lab_x, names(asv4))]
 x2 <- x2[,-c(ncol(x2))]
 colnames(x2) <- levels
@@ -316,7 +335,15 @@ x2$suggested_db <- NA
 x2$suggested_db <- lab_x
 x2$LEVELS_COVERED <- NA
 x2$LEVELS_COVERED <- sum(!is.na(x2[,levels]))
-
+} else {
+  x2  <- asv4[i,grepl(lab_x, names(asv4))]
+  x2 <- x2[,-c(ncol(x2))]
+  colnames(x2) <- levels
+  x2$suggested_db <- NA
+  x2$suggested_db <- lab_x[[1]]
+  x2$LEVELS_COVERED <- NA
+  x2$LEVELS_COVERED <- sum(!is.na(x2[,levels]))
+}
 return(x2)
 })
 
@@ -516,4 +543,77 @@ write.csv(taxonomic_summary_coverage,paste0(out_dir,"/","csv","/","taxonomic_sum
 #scale_y_continuous(limits = c(0,0.8),breaks=seq(0,0.8,0.05))
 
  ggsave(paste0(graph_dir,"/","Taxonomy_coverage",".pdf"),coverage_tax_plot,dpi=300,width =100,height=90,units = "cm",scale=1.2,limitsize = FALSE)
+ ##################
+##Current taxonomic level
+ asv5 <-readRDS(paste0(out_dir,"/","csv","/","taxonomy_final.RDS"))
  
+ 
+tax_cov_curr <- as.data.frame.matrix(table(asv5$suggested_db,asv5$LEVELS_COVERED))
+colnames(tax_cov_curr) <- levels[-1]
+tax_cov_curr$db <- NA; tax_cov_curr$db <- row.names(tax_cov_curr)
+tax_cov_curr <- tax_cov_curr[,c(7,1:6)]
+tax_cov_curr <- melt(tax_cov_curr)
+tax_cov_curr$db <- sub("GG","GREENGENES",tax_cov_curr$db)
+  
+tax_cov_curr<-tax_cov_curr[order(
+  tax_cov_curr$variable == "phylum",
+  tax_cov_curr$variable == "class",
+  tax_cov_curr$variable == "order",
+  tax_cov_curr$variable == "family",
+  tax_cov_curr$variable == "genus",
+  tax_cov_curr$variable == "species",
+  decreasing = T),]
+
+tax_cov_curr<-tax_cov_curr[order(
+  tax_cov_curr$db == "SILVA",
+  tax_cov_curr$db == "RDP",
+  tax_cov_curr$db == "GREENGENES",
+  tax_cov_curr$db == "BLAST",
+  tax_cov_curr$db == "HUNGATE",
+  decreasing = T),]
+tax_cov_curr$db <- factor( tax_cov_curr$db,levels = c("SILVA","RDP","GREENGENES","BLAST","HUNGATE"))
+
+colnames(tax_cov_curr) <- c("Database","Level","value")
+coverage_tax_curr_plot <- ggplot(data=tax_cov_curr,aes(x=Level,y=value,fill=Database))+
+  geom_bar(stat="identity",show.legend = T,position = "dodge")+
+  xlab("")+
+  ylab("Count")+
+  # ylim(0,0.1)+
+  #geom_hline(yintercept=0.05, linetype="dashed", color = "black")+
+  theme(text=element_text(size=60),
+        legend.text=element_text(size=60),
+        axis.text.x  = element_text(size=60,colour="black"),
+        axis.text.y  = element_text(size=60,colour="black"))
+
+ggsave(paste0(graph_dir,"/","Taxonomy_coverage_current",".pdf"),coverage_tax_curr_plot,dpi=300,width =100,height=90,units = "cm",scale=1.2,limitsize = FALSE)
+##Percentage
+
+coverage_tax_curr_plot3 <- ggplot(data=tax_cov_curr,aes(x=Database,y=value,fill=Level))+
+  geom_bar(stat="identity",show.legend = T,position = "dodge")+
+  xlab("")+
+  ylab("Coverage (%)")+
+  # ylim(0,0.1)+
+  #geom_hline(yintercept=0.05, linetype="dashed", color = "black")+
+  theme(text=element_text(size=60),
+        legend.text=element_text(size=60),
+        axis.text.x  = element_text(size=60,colour="black"),
+        axis.text.y  = element_text(size=60,colour="black"))+
+scale_y_continuous(limits = c(0,45),breaks=seq(0,45,5))
+
+ggsave(paste0(graph_dir,"/","Taxonomy_coverage_current_per_db",".pdf"),coverage_tax_curr_plot3,dpi=300,width =100,height=90,units = "cm",scale=1.2,limitsize = FALSE)
+##pre
+
+
+coverage_tax_curr_plot2 <- ggplot(data=tax_cov_curr,aes(x=Level,y=value,fill=Database))+
+  geom_bar(stat="identity",show.legend = T,position = "dodge")+
+  xlab("")+
+  ylab("Coverage (%)")+
+  # ylim(0,0.1)+
+  #geom_hline(yintercept=0.05, linetype="dashed", color = "black")+
+  theme(text=element_text(size=60),
+        legend.text=element_text(size=60),
+        axis.text.x  = element_text(size=60,colour="black"),
+        axis.text.y  = element_text(size=60,colour="black"))+
+  scale_y_continuous(limits = c(0,45),breaks=seq(0,45,5))
+
+ggsave(paste0(graph_dir,"/","Taxonomy_coverage_current_perc",".pdf"),coverage_tax_curr_plot2,dpi=300,width =100,height=90,units = "cm",scale=1.2,limitsize = FALSE)
