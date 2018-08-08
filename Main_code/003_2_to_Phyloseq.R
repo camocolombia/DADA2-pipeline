@@ -210,3 +210,4 @@ ps_tree2 <- plot_tree(ps,nodelabf=nodeplotboot(),# nodelabf=nodeplotboot(80,0,3)
         
 
 ggsave(paste0(graph_dir,"/","ps_tree",".pdf"),ps_tree2,dpi=300,width =100,height=150,units = "cm",scale=0.8,limitsize = FALSE)
+
