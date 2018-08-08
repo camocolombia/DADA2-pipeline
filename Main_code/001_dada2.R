@@ -185,7 +185,11 @@ q_F_graph <- ggplot(med_Q_F,aes(x=Cycle,y=Q50,colour="black"))+
   geom_hline(yintercept=30)+
   xlab("Cycle")+
   ylab("Phred score median")+
-  ggtitle("Forward read phred score")
+  ggtitle("Forward read phred score")+
+  theme(text=element_text(size=40),
+         legend.text=element_text(size=40),
+         axis.text.x  = element_text(size=30,colour="black",angle=90),
+         axis.text.y  = element_text(size=49,colour="black"))
 #q_F_graph <- ggMarginal(q_F_graph, type="histogram")
 q_F_graph
 sug_F <- min(F_med_p2$Cycle[which(F_med_p2$Median_frequency<30)])
@@ -223,7 +227,11 @@ q_R_graph <- ggplot(med_Q_R,aes(x=Cycle,y=Q50,colour="black"))+
   geom_hline(yintercept=30)+
   xlab("Cycle")+
   ylab("Phred score median")+
-  ggtitle("Reverse read phred score")
+  ggtitle("Reverse read phred score")+
+  theme(text=element_text(size=40),
+        legend.text=element_text(size=40),
+        axis.text.x  = element_text(size=30,colour="black",angle=90),
+        axis.text.y  = element_text(size=49,colour="black"))
 
 # #med_Q_F$Cycle <- as.factor(as.character(med_Q_F$Cycle))
 R_med_p <- reshape2::acast(data = med_Q_R,formula = Cycle ~ Q50, margins = c("file", "Cycle"))
@@ -237,6 +245,13 @@ ggplot(R_med_p2,aes(x=Cycle,y=Median_frequency,colour="black"))+
   scale_x_continuous(limits = c(0,250),breaks=seq(0,250,10))+
   scale_color_manual(values=c("black"))
 sug_R <- min(R_med_p2$Cycle[which(R_med_p2$Median_frequency<30)])
+
+####graph
+FR_graph <- grid.arrange(q_F_graph, q_R_graph, nrow = 1)
+ggsave(paste0(qual_pl_dir,"/","F_R.png"),FR_graph,width=90,height =50, units = "cm",dpi=300,limitsize = F)
+
+
+
 #Make new filtered sequences
 if(!file_test("-d", seq_filt_dir)) dir.create(seq_filt_dir)
 filtFs <- file.path(seq_filt_dir, paste0(sampleNames, "_F_filt.fastq.gz"))

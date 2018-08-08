@@ -20,6 +20,7 @@ library("ggvegan")
 library("dplyr")
 library("ggrepel")
 library("ggtree")
+library("data.table")
 #Defining paths to be analyzed
 # mainDir <- "E:/Dropbox/Dropbox/Paper_PhD"
 # chapter <- "chapter_1
@@ -71,8 +72,31 @@ tree_imp$tip.label <- gsub("_\\w+", "", tree_imp$tip.label)
 tree_plot <- ggtree(tree_imp, layout='rectangular') + geom_tiplab(size=0.5)#, aes(angle=angle))
 #write.tree(tree_imp,paste0(seq_dir,"/","pml_ft.tree")) 
 ggsave(paste0(graph_dir,"/","tree_plot",".pdf"),tree_plot,dpi=300,width =90,height=80,units = "cm",scale=0.2,limitsize = FALSE)
-boxplot(asv5$sequence_length ~ asv5$LEVELS_COVERED,ylab="Sequence length",xlab="Taxonomic rank")
 
+###################################################
+#Taxonomic coverage per rank
+
+tc1bp <- ggplot(data=asv5[which(!is.na(asv5$LEVELS_COVERED)),],aes(x=factor(LEVELS_COVERED),y=sequence_length,fill=suggested_db))+
+  geom_boxplot(position = "dodge",na.rm=T)+
+               #,outlier.colour = NA,outlier.fill=NA,outlier.alpha=1,outlier.size =NA,na.rm = T) +
+  stat_boxplot(geom ='errorbar') +
+  #stat_summary(fun.y=mean, geom="line", aes(group=1))  +
+  #stat_summary(fun.y=mean, geom="point")+
+  #guides(fill=FALSE)+
+  #ylim(c(0,100))+
+  ylab("Sequence length")+ xlab("Taxonomic rank")+
+  ggtitle("")+
+  #scale_fill_manual("legend", values = c("red","blue"))+
+  theme(panel.background = element_rect(fill = "gray95"),
+        text=element_text(size=60),axis.text.x  = element_text(size=60,colour="black",angle = 90, hjust = 1),
+        axis.text.y  = element_text(size=60,colour="black")#,
+        #legend.title=element_blank(),legend.position="none"
+        )+
+  scale_y_continuous(limits = c(220,420),breaks=seq(220,420,20))
+
+ggsave(paste0(graph_dir,"/","taxomomic_depth_reads",".pdf"),tc1bp,dpi=300,width =90,height=80,units = "cm",scale=1.2,limitsize = FALSE)
+
+####################################################
 #samples.out <- as.numeric(as.character(samples.out))
 subject <- sapply(strsplit(samples.out, "D"), `[`, 1)
 subject <- as.numeric(as.character(subject));subject2 <- as.data.frame(subject);colnames(subject2) <- "Reference.number"
@@ -105,6 +129,7 @@ row.names(taxa) <- as.character(asv5$seq_id);#
 colnames(taxa) <- c("Kingdom","Phylum","Class","Order","Family","Genus","Species")
 colnames(seqtab.nochim) <- as.character(asv5$seq_id)
 
+##################################################
 #Formatting to phyloseq library
 ps <- phyloseq::phyloseq(otu_table(seqtab.nochim, taxa_are_rows=FALSE), 
                sample_data(samdf), 
@@ -113,29 +138,111 @@ ps <- phyloseq::phyloseq(otu_table(seqtab.nochim, taxa_are_rows=FALSE),
 )
 
 saveRDS(ps,paste0(csv_dir,"/","Phyloseq_object",".RDS"))
+##################################################
 
-sample_sum_df <- data.frame(sum = sample_sums(ps))
+
+UNI_DIST <- UniFrac(ps, weighted=T, normalized=TRUE, parallel=FALSE, fast=TRUE)
+
+
+
+##################################################
+
+
+nsamples(ps) 
+#http://evomics.org/wp-content/uploads/2016/01/phyloseq-Lab-01-Answers.html
+sdt = data.table(as(sample_data(ps), "data.frame"),
+                 TotalReads = sample_sums(ps), keep.rownames = TRUE)
+setnames(sdt, "rn", "SampleID")
 
 #Plotting reads coverage
-read_plot <- ggplot(sample_sum_df, aes(x = sum)) + 
+read_plot <- ggplot(sdt, aes(TotalReads)) + 
   geom_histogram(color = "black", fill = "gray", binwidth = 2500) +
   ggtitle("Distribution of sample sequencing depth") + 
   xlab("Read counts") +
   theme(axis.title.y = element_blank(),
         panel.background = element_rect(fill = "gray95"),
-              text=element_text(size=90),
-              axis.text.x  = element_text(size=60,colour="black",angle = 90, hjust = 1)
-        )#,
+        text=element_text(size=90),
+        axis.text.x  = element_text(size=60,colour="black",angle = 90, hjust = 1))
+        
+read_plot <- read_plot +   facet_wrap(Phase~Treatment)
 
 
 ggsave(paste0(graph_dir,"/","seq_reads",".pdf"),read_plot,dpi=600,width =90,height=80,units = "cm",scale=0.8,limitsize = FALSE)
 
 
-treat_phase <- as.data.frame(cbind(samdf$Subject,paste(samdf$Treatment,samdf$Phase,sep = "_")))
-colnames(treat_phase) <- c("Subject","Treat_Phase")
-treat_phase$Subject <- as.character(treat_phase$Subject)
-ps_otu_hclust$labels <-merge(ps_otu_hclust$labels,treat_phase,by.x="x",by.y="Subject")[,2]
-plot(ps_otu_hclust)
+tdt = data.table(tax_table(ps),
+                 TotalCounts = taxa_sums(ps),
+                 OTU = taxa_names(ps))
+ggplot(tdt, aes(TotalCounts)) + 
+  geom_histogram() + 
+  ggtitle("Histogram of Total Counts")
+
+tdt[(TotalCounts <= 0), .N]
+tdt[(TotalCounts <= 2), .N]
+#Taxa cumulative sum
+
+taxcumsum = tdt[, .N, by = TotalCounts]
+setkey(taxcumsum, TotalCounts)
+taxcumsum[, CumSum := cumsum(N)]
+# Define the plot
+pCumSum = ggplot(taxcumsum, aes(TotalCounts, CumSum)) + 
+  geom_point() +
+  xlab("Filtering Threshold, Minimum Total Counts") +
+  ylab("OTUs Filtered") +
+  ggtitle("OTUs that would be filtered vs. the minimum count threshold")
+pCumSum
+
+# pb_abun <- plot_bar(ps, "Treatment", "Abundance","Kingdom", title="Abundance per phyla")
+# pb_abun <- pb_abun + geom_bar(aes(color=Kingdom, fill=Kingdom), stat="identity", position="stack")
+# pb_abun
+##################################################
+#Plotting tree
+ps_tree2 <- plot_tree(ps,nodelabf=nodeplotboot(),# nodelabf=nodeplotboot(80,0,3),
+                      color="Treatment", 
+                      size = "Abundance",
+                      #label.tips="taxa_names",
+                      justify = "yes please", 
+                      ladderize="left",
+                      plot.margin=0.4#,
+                      #shape="Phase"
+                      )+
+  scale_size_continuous(range = c(1, 3)) +
+  scale_color_manual("Treatment", values = c("blue","red"))+
+  theme(text=element_text(size=60),
+         legend.text=element_text(size=60)) +
+          coord_polar(theta="y")    
+        
+
+ggsave(paste0(graph_dir,"/","ps_tree",".pdf"),ps_tree2,dpi=300,width =100,height=150,units = "cm",scale=0.8,limitsize = FALSE)
+
+
+
+GP.chl <- subset_taxa(ps, Phylum=="Spirochaetes")
+plot_tree(GP.chl, color="Treatment", nodelabf=nodeplotboot(),
+          #shape="Family", 
+          label.tips="Genus",
+          size="abundance", plot.margin=0.6,
+          #justify = "yes please", 
+          ladderize="left")+
+#  scale_size_continuous(range = c(1, 3)) +
+  scale_color_manual("Treatment", values = c("blue","red"))+
+  theme(text=element_text(size=60),
+        legend.text=element_text(size=60)) #+
+ # coord_polar(theta="y")    
+
+
+
+plot_tree(ps, color="Phylum")
+
+
+gpsfbg = tax_glom(ps, "Family")
+plot_tree(gpsfbg, color="Treatment", shape="Kingdom", size="abundance", justify = "yes please", 
+          ladderize="left")+ 
+  scale_size_continuous(range = c(1, 3)) +
+  scale_color_manual("Treatment", values = c("blue","red"))+
+  theme(text=element_text(size=60),
+        legend.text=element_text(size=60)) #+
+#  coord_polar(theta="y")    
 # #Stacked barplots
 # 
 # # Set colors for plotting
@@ -176,8 +283,8 @@ pserie_sp <- ps %>%
   arrange(Species)  
 
 # Plot Phylum
-phylum_graph <- ggplot(pserie_sp, aes(x = Treatment, y = Abundance, fill = reorder(Phylum, -Abundance))) + 
-  facet_grid(Kingdom~.) +
+phylum_graph <- ggplot(pserie_phylum, aes(x = Phase, y = Abundance, fill = reorder(Phylum, -Abundance))) + 
+  facet_grid(Treatment ~ Kingdom) +
   #facet_grid(Treatment~.) +
   geom_bar(stat = "identity",position = "dodge") +
  # scale_fill_manual(values = phylum_colors) +
@@ -198,9 +305,9 @@ phylum_graph <- ggplot(pserie_sp, aes(x = Treatment, y = Abundance, fill = reord
 
 ggsave(paste0(graph_dir,"/","phylum_graph",".pdf"),phylum_graph,dpi=600,width =90,height=80,units = "cm",scale=0.8,limitsize = FALSE)
 
-# Plot family
-family_graph <- ggplot(pserie_sp, aes(x = Treatment, y = Abundance, fill = reorder(Family, -Abundance))) + 
-  facet_grid(Kingdom~.) +
+  # Plot family
+family_graph <- ggplot(pserie_family, aes(x = Phase, y = Abundance, fill = reorder(Family, -Abundance))) + 
+  facet_grid(Treatment ~ Kingdom) +
   geom_bar(stat = "identity",position = "dodge") +
   # scale_fill_manual(values = phylum_colors) +
   # scale_x_discrete(
@@ -222,8 +329,8 @@ family_graph <- ggplot(pserie_sp, aes(x = Treatment, y = Abundance, fill = reord
 ggsave(paste0(graph_dir,"/","family_graph",".pdf"),family_graph,dpi=600,width =90,height=80,units = "cm",scale=0.8,limitsize = FALSE)
 
 # Plot genus
-genus_graph <- ggplot(pserie_sp, aes(x = Treatment, y = Abundance, fill = reorder(Genus, -Abundance))) + 
-  facet_grid(Kingdom~.) +
+genus_graph <- ggplot(pserie_genus, aes(x = Phase, y = Abundance, fill = reorder(Genus, -Abundance))) + 
+  facet_grid(Treatment ~ Kingdom) +
   geom_bar(stat = "identity",position = "dodge") +
   # scale_fill_manual(values = phylum_colors) +
   # scale_x_discrete(
@@ -245,8 +352,8 @@ genus_graph <- ggplot(pserie_sp, aes(x = Treatment, y = Abundance, fill = reorde
 ggsave(paste0(graph_dir,"/","genus_graph",".pdf"),genus_graph,dpi=600,width =90,height=80,units = "cm",scale=0.8,limitsize = FALSE)
 
 # Plot species
-sp_graph <- ggplot(pserie_sp, aes(x = Treatment, y = Abundance, fill = reorder(Species, -Abundance))) + 
-  facet_grid(Kingdom~.) +
+sp_graph <- ggplot(pserie_sp, aes(x = Phase, y = Abundance, fill = reorder(Species, -Abundance))) + 
+  facet_grid(Treatment ~ Kingdom) +
   #facet_grid(Treatment~.) +
   geom_bar(stat = "identity",position = "dodge") +
   # scale_fill_manual(values = phylum_colors) +
@@ -310,6 +417,11 @@ ps_otu2 <- ps_otu
 ps_otu_dist <- dist.binary(df = ps_otu,method = 1)#vegdist(ps_otu,method = "jaccard",binary = T,na.rm = T
 ps_otu$sample <- NA;ps_otu$sample <- row.names(ps_otu)
 ss <- merge(ps_otu,prod,by.x="sample",by.y="Reference.number",all=T)
+treat_phase <- as.data.frame(cbind(samdf$Subject,paste(samdf$Treatment,samdf$Phase,sep = "_")))
+colnames(treat_phase) <- c("Subject","Treat_Phase")
+treat_phase$Subject <- as.character(treat_phase$Subject)
+ps_otu_hclust$labels <-merge(ps_otu_hclust$labels,treat_phase,by.x="x",by.y="Subject")[,2]
+plot(ps_otu_hclust)
 # ps_otu$Treatment <- NA;
 # ps_otu$Treatment <- ss$Treatment.y
 
@@ -718,16 +830,7 @@ teplot <- ggplot(data=species_centroids, aes(label = species_names,x = RDA1,y=RD
 
 
 
-ps_tree2 <- plot_tree(ps, nodelabf=nodeplotboot(80,0,3),
-                      color="Treatment", 
-                      label.tips="taxa_names", 
-                      ladderize="left",
-                      shape="Phase")#+
-# coord_polar(theta="y")
 
-ps_tree2
-
-plot_tree(ps, color="Treatment", size="abundance", plot.margin=0.4)
 
 
 
