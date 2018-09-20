@@ -590,7 +590,7 @@ ggsave(paste0(graph_dir,"/","Taxonomy_coverage_current",".pdf"),coverage_tax_cur
 ##Percentage
 tax_cov_curr$value <- tax_cov_curr$value/sum(tax_cov_curr$value)*100
 coverage_tax_curr_plot3 <- ggplot(data=tax_cov_curr,aes(x=Database,y=value,fill=Level))+
-  geom_bar(stat="identity",show.legend = T,position = "dodge")+
+  geom_bar(stat="identity",show.legend = T,position = "stack")+
   xlab("")+
   ylab("Coverage (%)")+
   # ylim(0,0.1)+

@@ -18,7 +18,7 @@ is_outlier <- function(x) {
   return(x < quantile(x, 0.25) - 1.5 * IQR(x) | x > quantile(x, 0.75) + 1.5 * IQR(x))
 }
 ###DEFINING PATHS
-mainDir <- "E:/Dropbox/Dropbox/Paper_PhD"
+mainDir <- "E:/DADA2"
 chapter <- "chapter_1"
 dat_dir <- paste0(mainDir,"/",chapter,"/","data"); if(!file.exists(dat_dir)){dir.create(dat_dir)}
 production_dir <- paste0(dat_dir,"/","production"); if(!file.exists(production_dir)){dir.create(production_dir)}
@@ -64,7 +64,6 @@ corrplot::corrplot(cor(my_data[,-6]),method="color",col = col(200),hclust.method
                    # hide correlation coefficient on the principal diagonal
                    diag = FALSE)        
 
-dev.off()
 
 ### PERFORMING PCA 
 #http://www.sthda.com/english/wiki/print.php?id=202

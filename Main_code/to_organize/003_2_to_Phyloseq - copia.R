@@ -1,4 +1,3 @@
-
 ##################################################
 ##Chrystian C. Sosa 2018 Chapter 1               #
 ##2018-06-29                                     #
@@ -14,7 +13,7 @@ library("gridExtra")
 library("reshape")
 library("plyr")
 library("phyloseq")
-# library("microbiome")
+library("microbiome")
 #library("microbiomeSeq")
 library("vegan")
 library("ggvegan")
@@ -22,7 +21,6 @@ library("dplyr")
 library("ggrepel")
 library("ggtree")
 library("data.table")
-# library("DESeq2")
 #Defining paths to be analyzed
 # mainDir <- "E:/Dropbox/Dropbox/Paper_PhD"
 # chapter <- "chapter_1
@@ -140,13 +138,6 @@ ps <- phyloseq::phyloseq(otu_table(seqtab.nochim, taxa_are_rows=FALSE),
 )
 
 saveRDS(ps,paste0(csv_dir,"/","Phyloseq_object",".RDS"))
-
-
-# ps.prop <- transform_sample_counts(ps, function(otu) otu/sum(otu))
-# saveRDS(ps.prop,paste0(csv_dir,"/","Phyloseq_object_prop",".RDS"))
-# otu_table_rel_abund <- as.data.frame(ps@otu_table/sum(ps@otu_table))
-# saveRDS(otu_table_rel_abund,paste0(csv_dir,"/","otu_table_rel_abund",".RDS"))
-
 ##################################################
 #http://evomics.org/wp-content/uploads/2016/01/phyloseq-Lab-01-Answers.html
 sdt = data.table(as(sample_data(ps), "data.frame"),
@@ -177,70 +168,45 @@ ggplot(tdt, aes(TotalCounts)) +
   ggtitle("Histogram of Total Counts")
 
 tdt[(TotalCounts <= 0), .N]
-tdt[(TotalCounts <2), .N]
+tdt[(TotalCounts <= 2), .N]
 #Taxa cumulative sum
 
 taxcumsum = tdt[, .N, by = TotalCounts]
 setkey(taxcumsum, TotalCounts)
 taxcumsum[, CumSum := cumsum(N)]
 # Define the plot
-pCumSum = ggplot(taxcumsum, aes(log(TotalCounts), log(CumSum))) + 
+pCumSum = ggplot(taxcumsum, aes(TotalCounts, CumSum)) + 
   geom_point() +
-  # geom_hline(yintercept=0) +
-  # geom_vline(xintercept=0) +
-# xlab("Total Counts") +
-#   ylab("OTUs Filtered") +
-  xlab("log(Total Counts)") +
-  ylab("log(OTUs Filtered)") +
+  geom_hline(yintercept=0) +
+  geom_vline(xintercept=0) +
+xlab("Total Counts") +
+  ylab("OTUs Filtered") +
   ggtitle("") +
-  #scale_y_continuous(limits = c(2,1510),breaks=seq(2,1510,50)) +
-  scale_y_continuous(limits = c(4.5,log(1510)),breaks=seq(4.5,log(1510),0.5)) +
-    #scale_x_continuous(limits = c(0,700000),breaks=seq(0,700000,10000)) +
-  scale_x_continuous(limits = c(log(2),log(700000)),breaks=seq(log(2),log(700000),1)) +
-  
-    theme(text=element_text(size=20),
+  scale_y_continuous(limits = c(0,1510),breaks=seq(0,1510,50)) +
+  scale_x_continuous(limits = c(0,700000),breaks=seq(0,700000,10000)) +
+  theme(text=element_text(size=20),
         axis.text.x  = element_text(angle=90,size=20,colour="black"),
         axis.text.y  = element_text(size=20,colour="black"))
 ggsave(paste0(graph_dir,"/","OTU_counts",".pdf"),pCumSum,dpi=600,width =90,height=80,units = "cm",scale=0.8,limitsize = FALSE)
-pCumSum
+
 ##################################################
-colnames(asv5)[95:101] <- paste0("SUGGESTED_",colnames(asv5)[95:101])
-dbs <- c("SILVA","RDP","GG","BLAST","HUNGATE","SUGGESTED")
 
-list_counts_sp <- list()
 
-#for(k in 1:(length(dbs)*length(levels))){
-#list_counts_sp <- lapply(1:(length(dbs)*length(levels)),function(k){ 
-#  cat(k,"\n")
+#Plotting tree
+ps_tree2 <- plot_tree(ps,nodelabf=nodeplotboot(),# nodelabf=nodeplotboot(80,0,3),
+                      color="Treatment", 
+                      size = "Abundance",
+                      #label.tips="taxa_names",
+                      justify = "yes please", 
+                      ladderize="left",
+                      plot.margin=0.4#,
+                      #shape="Phase"
+                      )+
+  scale_size_continuous(range = c(1, 3)) +
+  scale_color_manual("Treatment", values = c("blue","red"))+
+  theme(text=element_text(size=60),
+         legend.text=element_text(size=60)) +
+          coord_polar(theta="y")    
+        
 
-list_counts_db <- lapply(1:length(dbs),function(i){
-        db_u <- dbs[i]
-list_counts_sp <- lapply(1:length(levels),function(j){
-x <- as.data.frame(table(asv5[,paste0(db_u,"_",levels[j])]))
-x$rel <- NA; x$rel <- (x$Freq/nrow(asv5)*100)
-x$db <- NA; x$db <- db_u
-x$level <- NA; x$level <- levels[j]
-colnames(x) <- c("taxa","counts","rel_per","db","level")
-return(x)
-      })
-list_counts_sp <-do.call(rbind,list_counts_sp)
-return(list_counts_sp)
-})
-
-list_counts_db <- do.call(rbind, list_counts_db)
-list_counts_db <- list_counts_db[which(complete.cases(list_counts_db)),]
-list_counts_db <- list_counts_db[which(list_counts_db$counts>0),]
-list_counts_db$db <- factor(list_counts_db$db,levels = dbs)
-list_counts_db$level <- factor(list_counts_db$level,levels = levels)
-
-list_counts_db_k <- list_counts_db[which(list_counts_db$level=="kingdom"),]
-p4 <-  ggplot(aes(y = rel_per, x =  db, fill =  level), data = list_counts_db) +  geom_boxplot()
-
-  #ggplot() + geom_bar(aes(y = rel_per, x =  db, fill =  taxa), data = list_counts_db_k,stat="identity")
-p4 <- p4 + #geom_text(data=list_counts_db_k, aes(x = db, y = rel_per,
-#                                           label = paste0(round(rel_per,2),"%")), size=2)+
-  xlab("Taxonomic database")+
-  ylab("Relative abundace per taxon (%)")
-p4
-
-# })
+ggsave(paste0(graph_dir,"/","ps_tree",".pdf"),ps_tree2,dpi=300,width =100,height=150,units = "cm",scale=0.8,limitsize = FALSE)

@@ -258,28 +258,28 @@ pserie_phylum <- ps %>%
   tax_glom(taxrank = "Phylum") %>%                     # agglomerate at phylum level
   transform_sample_counts(function(x) {x/sum(x)} ) %>% # Transform to rel. abundance
   psmelt() %>%                                         # Melt to long format
-  filter(Abundance > 0.05) %>%                         # Filter out low abundance taxa
-  arrange(Phylum)     
+  #filter(Abundance > 0.05) %>%                         # Filter out low abundance taxa
+ # arrange(Phylum)     
 #Family
 pserie_family <- ps %>%
   tax_glom(taxrank = "Family") %>%                     # agglomerate at phylum level
   transform_sample_counts(function(x) {x/sum(x)} ) %>% # Transform to rel. abundance
   psmelt() %>%                                         # Melt to long format
-  filter(Abundance > 0.05) %>%                         # Filter out low abundance taxa
+  #filter(Abundance > 0.05) %>%                         # Filter out low abundance taxa
   arrange(Family)                                      # Sort d
 #Genus
 pserie_genus <- ps %>%
   tax_glom(taxrank = "Genus") %>%                     # agglomerate at phylum level
   transform_sample_counts(function(x) {x/sum(x)} ) %>% # Transform to rel. abundance
   psmelt() %>%                                         # Melt to long format
-  filter(Abundance > 0.05) %>%                         # Filter out low abundance taxa
+  #filter(Abundance > 0.05) %>%                         # Filter out low abundance taxa
   arrange(Genus)                                      # Sort d
 #Species
 pserie_sp <- ps %>%
   tax_glom(taxrank = "Species") %>%                     # agglomerate at phylum level
   transform_sample_counts(function(x) {x/sum(x)} ) %>% # Transform to rel. abundance
   psmelt() %>%                                         # Melt to long format
-  filter(Abundance > 0.02) %>%                         # Filter out low abundance taxa
+  #filter(Abundance > 0.02) %>%                         # Filter out low abundance taxa
   arrange(Species)  
 
 # Plot Phylum
@@ -844,6 +844,9 @@ sample_data(atlas1006)$diversity <- global(atlas1006, index = "shannon")[,1]
 
 # Compare age and microbiome diversity
 plot_regression(diversity ~ age, meta(atlas1006))
+plot_regression(pH ~ FCR, meta(ps3)[,-c(1:4)])
+
+
 p <- prevalence(dietswap, detection = 0, sort = TRUE)
 
 # Taxa with over 50% prevance at .2% relative abundance
