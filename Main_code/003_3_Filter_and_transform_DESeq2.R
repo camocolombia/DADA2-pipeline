@@ -71,7 +71,7 @@ gm_mean = function(x, na.rm=TRUE){
 #Loading Phyloseq object
 ps <- readRDS(paste0(csv_dir,"/","Phyloseq_object",".RDS"))
 
-levels(ps@sam_data$Treatment) <- c("Low feed efficiency","High feed efficiency")
+#levels(ps@sam_data$Treatment) <- c("Low feed efficiency","High feed efficiency")
 sample_data(ps)$UsableReads<-sample_sums(ps)
 
 
@@ -321,3 +321,4 @@ ps_tree2 <- plot_tree(ps,nodelabf=nodeplotboot(),# nodelabf=nodeplotboot(80,0,3)
 ggsave(paste0(graph_dir,"/","ps_tree",".pdf"),ps_tree2,dpi=300,width =100,height=150,units = "cm",scale=0.8,limitsize = FALSE)
 
 rm(geoMeans,keepPhyla,abundds2,res2,sigtab,sigtabgen,posigtab,ps1,ps2,ps3,ps,x)
+

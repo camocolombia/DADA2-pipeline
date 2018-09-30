@@ -1,4 +1,4 @@
-require("lme4")
+library("lme4")
 library("hrbrthemes")
 library("gcookbook")
 library("tidyverse")

@@ -131,7 +131,6 @@ control <- trainControl(method='repeatedcv',
 # confusionMatrix(plsClasses, testing$Treatment)
 # 
 
-
 rfFit <- train(Treatment ~ ., data = training,
                method = "rf", preProc = "center",
                metric="Accuracy",proximity = TRUE,
@@ -146,8 +145,10 @@ importance <- varRF$importance#
 importance$OTU <- row.names(importance)
 importance <- importance[,c(2,1)]
 importance <- importance[order(varRF$importance$Overall,decreasing = TRUE),]
-importance <- importance[1:25,]
+#importance <- importance[1:25,]
 importance <- merge(importance,ps3@tax_table,by.x="OTU",by.y="row.names",all=F)
+importance <- importance[order(importance$Overall,decreasing = TRUE),]
+
 #View(importance)
 summary(rfFit)
 plot(rfFit)
@@ -193,6 +194,9 @@ saveRDS(lis2,paste0(out_dir,"/","csv/","rF_list.RDS"))
     
   }
 
+rfClasses <- predict(lis2$rfFit, newdata = lis2$testing)
+require(caret)
+confusionMatrix(rfClasses, lis2$testing$Treatment)
 
 #############################################################################################
 #############################################################################################
@@ -379,7 +383,7 @@ p1
 ordu_j = ordinate(ps4, "PCoA",distance = "jaccard", binary=T)
 p_jac <- plot_ordination(ps4, ordu_j, color="Treatment", shape="Phase")
 p_jac <- p_jac + 
-  scale_color_manual(values = c("red","blue"))+
+  scale_color_manual(values = c("blue","red"))+
   geom_point(size=9)+
   geom_text_repel(aes(label=sampleID), size=9,colour="black")
 
@@ -397,12 +401,12 @@ plot(beta_j)
 ordu_UF = ordinate(ps3, "PCoA", "bray")
 plot_UF <- plot_ordination(ps3, ordu_UF, color="Treatment", shape="Phase")
 plot_UF <- plot_UF + 
-  scale_color_manual(values = c("red","blue"))+
+  scale_color_manual(values = c("blue","red"))+
   geom_point(size=9)+
   geom_text_repel(aes(label=sampleID), size=9,colour="black")
 plot_UF
 
-  ################
+   ################
 
 
 out.wuf.log_J <- ordinate(ps4, method = "PCoA", distance = "jaccard",binary=T)

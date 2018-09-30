@@ -303,6 +303,7 @@ prop <- data.frame(
 )
 
 prop[2,] <- (prop[1,]/545)*100
+prop
 # 
 # 
 # 

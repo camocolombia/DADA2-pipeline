@@ -93,30 +93,36 @@ correlation.table <- microbiome::associate(ps3@otu_table, meta(ps3)[,-c(1:4,10)]
 #correlation.table <- correlation.table[which(correlation.table$p.adj<=0.05),]
 hm_plot <- microbiome::heat(correlation.table, "X1", "X2", fill = "Correlation", 
                  star = "p.adj", p.adj.threshold = 0.05,
-                 colours = c("darkred","red","white","blue","darkblue")
+                 colours = c("darkred","red","white","blue","darkblue"),plot.values = F,star.size=40,legend.text = "Spearman"
                  
-) 
+)+
+  theme(panel.background = element_rect(fill = "gray95"),
+        text=element_text(size=60),axis.text.x  = element_text(size=60,colour="black",angle = 90, hjust = 1),
+        axis.text.y  = element_text(size=60,colour="black")) +
+  #scale_fill_continuous(guide = guide_colorbar(direction = "horizontal")) +
+  theme(legend.position="right",legend.direction = "vertical",legend.key.size =  unit(1.5, "in"))
+
 # hm_plot <-  hm_plot  +
 #   theme(text=element_text(size=60),
 #                              legend.text=element_text(size=60),
 #                              axis.text.x  = element_text(size=60,colour="black",angle=90),
 #                              axis.text.y  = element_text(size=60,colour="black"))
 correlation.table
-ggsave(paste0(graph_dir,"/","heat_correlation_abund",".pdf"),hm_plot,dpi=300,width =100,height=90,units = "cm",scale=1.2,limitsize = FALSE)
+ggsave(paste0(graph_dir,"/","heat_correlation_abund",".pdf"),hm_plot,dpi=300,width =160,height=130,units = "cm",scale=1.2,limitsize = FALSE)
 
 
 
 write.csv(correlation.table,paste0(out_dir,"/","csv/","correlation.table.csv"),quote = F,row.names = F)
 
 
-ps_object$ps_genus
+#ps_object$ps_genus
 
-correlation.table_fam <- microbiome::associate(ps_object2$ps_family2@otu_table, ps_object2$ps_family2@otu_table, 
-                                           method = "spearman",
-                                           mode = "table", p.adj.threshold = 0.05, n.signif = 1,
-                                           p.adj.method = "fdr") #correlation.table <- correlation.table[which(correlation.table$p.adj<=0.05),]
-hm_plot_fam <- microbiome::heat(correlation.table_genus, "X1", "X2", fill = "Correlation", 
-                            star = "p.adj", p.adj.threshold = 0.05,
-                            colours = c("darkred","red","white","blue","darkblue")
-                            
-) 
+# correlation.table_fam <- microbiome::associate(ps_object2$ps_family2@otu_table, ps_object2$ps_family2@otu_table, 
+#                                            method = "spearman",
+#                                            mode = "table", p.adj.threshold = 0.05, n.signif = 1,
+#                                            p.adj.method = "fdr") #correlation.table <- correlation.table[which(correlation.table$p.adj<=0.05),]
+# hm_plot_fam <- microbiome::heat(correlation.table_genus, "X1", "X2", fill = "Correlation", 
+#                             star = "p.adj", p.adj.threshold = 0.05,
+#                             colours = c("darkred","red","white","blue","darkblue")
+#                             
+# ) 

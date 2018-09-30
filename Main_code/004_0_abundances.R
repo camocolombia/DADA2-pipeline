@@ -73,7 +73,7 @@ sample_data(ps)$Simpson <- global(ps, index = "simpson")[,1]
 s1bp <- ggplot(data=sample_data(ps),aes(x=Phase,y=Shannon,fill=Treatment))+
   geom_boxplot(position = "dodge",outlier.colour = NA,
                outlier.fill=NA,outlier.alpha=1,
-               outlier.size =NA,na.rm = T) +
+               outlier.size =NA,na.rm = T,show.legend = F) +
   stat_boxplot(geom ='errorbar') +
   #stat_summary(fun.y=mean, geom="line", aes(group=1))  +
   #stat_summary(fun.y=mean, geom="point")+
@@ -83,12 +83,14 @@ s1bp <- ggplot(data=sample_data(ps),aes(x=Phase,y=Shannon,fill=Treatment))+
   ggtitle("")+
   scale_fill_manual("Groups", values = c("blue","red"))+
   theme(panel.background = element_rect(fill = "gray95"),
-        text=element_text(size=60),axis.text.x  = element_text(size=60,colour="black",angle = 90, hjust = 1),
-        axis.text.y  = element_text(size=60,colour="black")#,
+        text=element_text(size=60),axis.text.x  = element_text(size=90,colour="black",angle = 90, hjust = 1),
+        axis.text.y  = element_text(size=80,colour="black")#,
         #legend.title=element_blank(),legend.position="none"
   )+
   coord_flip()
 s1bp
+ggsave(paste0(graph_dir,"/","Shannon_group_phase",".pdf"),s1bp,dpi=300,width =100,height=80,units = "cm",scale=1.2,limitsize = FALSE)
+
 ###Treatment
 s1bp_T <- ggplot(data=sample_data(ps),aes(x=Treatment,y=Shannon,fill=Treatment))+
   geom_boxplot(position = "dodge",outlier.colour = NA,
@@ -103,8 +105,8 @@ s1bp_T <- ggplot(data=sample_data(ps),aes(x=Treatment,y=Shannon,fill=Treatment))
   ggtitle("")+
   scale_fill_manual("Groups", values = c("blue","red"))+
   theme(panel.background = element_rect(fill = "gray95"),
-        text=element_text(size=60),axis.text.x  = element_text(size=60,colour="black",angle = 90, hjust = 1),
-        axis.text.y  = element_text(size=60,colour="black")#,
+        text=element_text(size=60),axis.text.x  = element_text(size=90,colour="black",angle = 90, hjust = 1),
+        axis.text.y  = element_text(size=80,colour="black")#,
         #legend.title=element_blank(),legend.position="none"
   )+
   coord_flip()
@@ -119,7 +121,7 @@ ggsave(paste0(graph_dir,"/","Shannon_group",".pdf"),s1bp_T,dpi=300,width =100,he
 s1bp_SI <- ggplot(data=sample_data(ps),aes(x=Phase,y=Simpson,fill=Treatment))+
   geom_boxplot(position = "dodge",outlier.colour = NA,
                outlier.fill=NA,outlier.alpha=1,
-               outlier.size =NA,na.rm = T) +
+               outlier.size =NA,na.rm = T,show.legend = F) +
   stat_boxplot(geom ='errorbar') +
   #stat_summary(fun.y=mean, geom="line", aes(group=1))  +
   #stat_summary(fun.y=mean, geom="point")+
@@ -129,12 +131,13 @@ s1bp_SI <- ggplot(data=sample_data(ps),aes(x=Phase,y=Simpson,fill=Treatment))+
   ggtitle("")+
   scale_fill_manual("Groups", values = c("blue","red"))+
   theme(panel.background = element_rect(fill = "gray95"),
-        text=element_text(size=60),axis.text.x  = element_text(size=60,colour="black",angle = 90, hjust = 1),
-        axis.text.y  = element_text(size=60,colour="black")#,
+        text=element_text(size=60),axis.text.x  = element_text(size=90,colour="black",angle = 90, hjust = 1),
+        axis.text.y  = element_text(size=80,colour="black")#,
         #legend.title=element_blank(),legend.position="none"
   )+
   coord_flip()
 s1bp_SI
+ggsave(paste0(graph_dir,"/","Simpson_group_phase",".pdf"),s1bp_SI,dpi=300,width =100,height=80,units = "cm",scale=1.2,limitsize = FALSE)
 
 ####
 s1bp_SI_T <- ggplot(data=sample_data(ps),aes(x=Treatment,y=Simpson,fill=Treatment))+
@@ -150,8 +153,8 @@ s1bp_SI_T <- ggplot(data=sample_data(ps),aes(x=Treatment,y=Simpson,fill=Treatmen
   ggtitle("")+
   scale_fill_manual("Groups", values = c("blue","red"))+
   theme(panel.background = element_rect(fill = "gray95"),
-        text=element_text(size=60),axis.text.x  = element_text(size=60,colour="black",angle = 90, hjust = 1),
-        axis.text.y  = element_text(size=60,colour="black")#,
+        text=element_text(size=60),axis.text.x  = element_text(size=90,colour="black",angle = 90, hjust = 1),
+        axis.text.y  = element_text(size=80,colour="black")#,
         #legend.title=element_blank(),legend.position="none"
   )+
   coord_flip()
@@ -177,7 +180,7 @@ sp <- ggpubr::ggscatterhist(
 )
 sp
 
-plot_richness(ps,measures = c("Shannon","Simpson"),color = "Treatment",shape = "Phase")
+#plot_richness(ps,measures = c("Shannon","Simpson"),color = "Treatment",shape = "Phase")
 
 
 
@@ -219,6 +222,15 @@ SHANN_EFF = wilcox.test(subset(sample_data(ps),Treatment=="High feed efficiency"
 #             subset(sample_data(ps),Phase=="solid")$Shannon)$p.value
 )
 
-wilcox_list_DIV[2,] <- NA
+# wilcox_list_DIV[2,] <- NA
+# 
+# wilcox_list_DIV[2,] <-  p.adjust(p = wilcox_list_DIV[1,],method =  "BH",n = length(wilcox_list_DIV[1,]))
+# 
 
-wilcox_list_DIV[2,] <-  p.adjust(p = wilcox_list_DIV[1,],method =  "BH",n = length(wilcox_list_DIV[1,]))
+#install.packages("devtools")
+library(devtools)
+#install_github("easyGgplot2", "kassambara")
+library(easyGgplot2)
+ab <- ggplot2.multiplot(s1bp,s1bp_SI, plotlist=NULL, cols=2)
+
+ggsave(paste0(graph_dir,"/","Alpha",".pdf"),ggplot2.multiplot(s1bp,s1bp_SI, plotlist=NULL, cols=2),dpi=300,width =200,height=100,units = "cm",scale=1.2,limitsize = FALSE)

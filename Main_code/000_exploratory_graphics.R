@@ -109,7 +109,7 @@ s <-fviz_screeplot(res.pca, ncp=10)
 #           cex = 0.7,                     # Label size
 #           palette = "jco",               # Color palette see ?ggpubr::ggpar
 #           rect = TRUE, rect_fill = TRUE, # Add rectangle around groups
-#           rect_border = "jco",           # Rectangle color
+#           rect_border = "jco",           # Rectangle color    
 #           labels_track_height = 0.8      # Augment the room for labels
 # )
 # 

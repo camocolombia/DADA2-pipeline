@@ -31,7 +31,7 @@ library("devtools")
 library("phytools")
 library("massMap")
 library("structSSI")
-library("microbiomeViz");
+#library("microbiomeViz");
 library("stringr")
 library("StructFDR")
 library("gtools")
@@ -301,8 +301,8 @@ df <- data.frame(seqId=names(HE),
 #df$change_Treat <- log2(df$HE_gmean/df$LE_gmean); df$change_Phase <- log2(df$SO_gmean/df$LI_gmean);
 #########################################
 #Calculating log2 fold change
-df$change_Treat <- log2(df$HE_gmean/df$LE_gmean); df$change_Phase <- log2(df$SO_gmean/df$LI_gmean);
-df$change_Treat3 <- log2(df$HE_gmean3/df$LE_gmean3); df$change_Phase3 <- log2(df$SO_gmean3/df$LI_gmean3);
+df$change_Treat <- log2((df$HE_gmean/df$LE_gmean)); df$change_Phase <- log2((df$SO_gmean/df$LI_gmean));
+df$change_Treat3 <- log2((df$HE_gmean3/df$LE_gmean3)); df$change_Phase3 <- log2((df$SO_gmean3/df$LI_gmean3));
 
 for(i in 1:nrow(df)){
   if(is.infinite(df$change_Treat[i])){
@@ -458,12 +458,12 @@ rm(HE,LE,HE_A,LE_A,SO_P,LI_P,SO_A_P,LI_A_P,HE_3,LE_3,HE_A_3,LE_A_3,SO_P_3,LI_P_3
 ########################################################################################################################
 #Wilcoxon summary test
 df_pvalues <- data.frame(
-  High_vs_Low = wilcox.test(x=(df$HE/(sum(df$HE,df$LE))),y=(df$LE/sum(df$HE,df$LE)),paired=F,alternative="two.sided",exact=F,correct=F,conf.int=T,conf.level=0.95)$p.value,
-  Solid_vs_liquid = wilcox.test(x=(df$S_Ph/(sum(df$S_Ph,df$L_Ph))),y=(df$L_Ph/sum(df$S_Ph,df$L_Ph)),paired=T,alternative="two.sided",exact=F,correct=F,conf.int=T,conf.level=0.95)$p.value,
-  Solids = wilcox.test(x=(df$SH/(sum(df$SH,df$SL))),y=(df$SL/sum(df$SH,df$SL)),paired=F,alternative="two.sided",exact=F,correct=F,conf.int=T,conf.level=0.95)$p.value,
-  Liquids = wilcox.test(x=(df$LH/(sum(df$LH,df$LL))),y=(df$LL/sum(df$LH,df$LL)),paired=F,alternative="two.sided",exact=F,correct=F,conf.int=T,conf.level=0.95)$p.value,
-  High_S_vs_L = wilcox.test(x=(df$SH/(sum(df$SH,df$LH))),y=(df$LH/sum(df$SH,df$LH)),paired=T,alternative="two.sided",exact=F,correct=F,conf.int=T,conf.level=0.95)$p.value,
-  Low_S_vs_L =wilcox.test(x=(df$SL/(sum(df$SL,df$LL))),y=(df$LL/sum(df$SL,df$LL)),paired=T,alternative="two.sided",exact=F,correct=F,conf.int=T,conf.level=0.95)$p.value,
+  # High_vs_Low = wilcox.test(x=(df$HE/(sum(df$HE,df$LE))),y=(df$LE/sum(df$HE,df$LE)),paired=F,alternative="two.sided",exact=F,correct=F,conf.int=T,conf.level=0.95)$p.value,
+  # Solid_vs_liquid = wilcox.test(x=(df$S_Ph/(sum(df$S_Ph,df$L_Ph))),y=(df$L_Ph/sum(df$S_Ph,df$L_Ph)),paired=T,alternative="two.sided",exact=F,correct=F,conf.int=T,conf.level=0.95)$p.value,
+  # Solids = wilcox.test(x=(df$SH/(sum(df$SH,df$SL))),y=(df$SL/sum(df$SH,df$SL)),paired=F,alternative="two.sided",exact=F,correct=F,conf.int=T,conf.level=0.95)$p.value,
+  # Liquids = wilcox.test(x=(df$LH/(sum(df$LH,df$LL))),y=(df$LL/sum(df$LH,df$LL)),paired=F,alternative="two.sided",exact=F,correct=F,conf.int=T,conf.level=0.95)$p.value,
+  # High_S_vs_L = wilcox.test(x=(df$SH/(sum(df$SH,df$LH))),y=(df$LH/sum(df$SH,df$LH)),paired=T,alternative="two.sided",exact=F,correct=F,conf.int=T,conf.level=0.95)$p.value,
+  # Low_S_vs_L =wilcox.test(x=(df$SL/(sum(df$SL,df$LL))),y=(df$LL/sum(df$SL,df$LL)),paired=T,alternative="two.sided",exact=F,correct=F,conf.int=T,conf.level=0.95)$p.value,
 #prop
 High_vs_Low3 = wilcox.test(x=df$HE3,y=df$LE3,paired=F,alternative="two.sided",exact=F,correct=F,conf.int=T,conf.level=0.95)$p.value,
 Solid_vs_liquid3 = wilcox.test(x=df$S_Ph3,y=df$L_Ph3,paired=T,alternative="two.sided",exact=F,correct=F,conf.int=T,conf.level=0.95)$p.value,
@@ -480,7 +480,7 @@ df_pvalues <- as.data.frame(t(df_pvalues))
 df_pvalues$sig <- NA;
 df_pvalues$sig[which(df_pvalues[,2] <= 0.05)] <-"**"; df_pvalues$sig[which(df_pvalues[,2] > 0.05)] <-"-"; 
 colnames(df_pvalues) <- c("p.value","p.adj","sig")
-
+write.csv(df_pvalues,paste0(csv_dir,"/","wilcoxon_pvalues_phase.csv"),row.names = F,quote = F)
 ########################################
 #Log2foldchange fixed per change in HE vs LE plot
 df_p <- df
@@ -569,14 +569,15 @@ df_sp <- df
 row.names(df_sp) <- df_sp$Row.names
 df_sp <- merge(df_sp,X2[,c(2,3)],"row.names")
 df_sp <- df_sp[,-1]
+df_sp$Row.names <- paste0(df_sp$seqId," - ",df_sp$Family," - ",df_sp$Genus)
 #df_sp <- df_sp[which(df_sp$change_Treat3 > 1 | df_sp$change_Treat3 < - 1),]
-df_sp <- df_sp[which(!is.na(df_sp$Genus)),]
+#df_sp <- df_sp[which(!is.na(df_sp$Genus)),]
 
 write.csv(df_sp,paste0(out_dir,"/","csv/","taxa__dfr_TREEFDR.csv"),quote = F,row.names = F)
           
-exp_plot3 <- ggplot(df_sp, aes(y=change_Treat3, x=reorder(Genus, -change_Treat3), color=Phylum, fill=Phylum)) + 
-  geom_point(size=25) + 
-  #geom_bar(stat="identity")+
+exp_plot3 <- ggplot(df_sp, aes(y=change_Treat3, x=reorder(Row.names, -change_Treat3), color=Phylum, fill=Phylum)) + 
+  #geom_point(size=25) + 
+  geom_bar(stat="identity")+
   geom_hline(yintercept = 0.0, color = "black", size = 1.5) +
   ylab("Log2foldchange")+
   xlab("")+
@@ -585,12 +586,15 @@ exp_plot3 <- ggplot(df_sp, aes(y=change_Treat3, x=reorder(Genus, -change_Treat3)
         legend.text=element_text(face="italic",size=60,colour="black"),
         axis.text.x  = element_text(face="italic",angle = -90,size=60, hjust = 0, vjust=0.5),
         axis.text.y  = element_text(face="italic",size=60,colour="black"))+
-  scale_y_continuous(limits = c(-7,7),breaks=seq(-7,7,0.5))+
+  scale_y_continuous(limits = c(-7,8),breaks=seq(-7,8,0.5))+
   coord_flip()
 #exp_plot2  
-ggsave(paste0(graph_dir,"/","log2foldchange_structFDR",".pdf"),exp_plot3,dpi=300,width =90,height=80,units = "cm",scale=1.2,limitsize = FALSE)
+ggsave(paste0(graph_dir,"/","log2foldchange_structFDR",".pdf"),exp_plot3,dpi=300,width =110,height=80,units = "cm",scale=1.2,limitsize = FALSE)
 
 
+sum(table(df_sp$Phylum)[order(table(df_sp$Phylum),decreasing=T)])
+table(df_sp$Family[which(df_sp$change_Treat3<0)])[order(table(df_sp$Family[which(df_sp$change_Treat3<0)]),decreasing = T)]
+table(df_sp$Family[which(df_sp$change_Treat3>0)])[order(table(df_sp$Family[which(df_sp$change_Treat3>0)]),decreasing = T)]
   #table(X2$Genus[order(X2$Genus,decreasing = T)])
 
 
@@ -773,7 +777,7 @@ coverage_taxP2<- ggplot(data=tax_levels_df,aes(x=tax_level,y=Abundance,fill=Trea
   #coord_flip()
 #  scale_y_continuous(limits = c(0,45),breaks=seq(0,45,5))
 t_levels <- firstup(levels)
-t_levels <- t_levels[1:5]
+t_levels <- t_levels[1:6]
 dfs_tax_level <- lapply(1:length(t_levels), function(i){
   cat("  ","\n");cat(as.character(t_levels[[i]]),"\n");  cat("  ","\n");
 X_Lev   <- subset(tax_levels_df,tax_levels_df$tax_level==t_levels[[i]])
@@ -805,8 +809,11 @@ S_Sub <- subset(X_Lev,X_Lev$taxon==taxon_obj &
 
 L_Sub <- subset(X_Lev,X_Lev$taxon==taxon_obj & 
                    X_Lev$Phase=="liquid")$Abundance
-
+require(plotrix)
 df_pvalues <- data.frame(
+  # High_mean = paste0(round(mean(HE_Sub),3),"±",round(std.error(HE_Sub),3)),
+  # Low_mean = paste0(round(mean(LE_Sub),3),"±",round(std.error(LE_Sub),3)),
+  
 High_vs_Low3 = if(sum(HE_Sub)>0 & sum(LE_Sub)>0){High_vs_Low3 = wilcox.test(x=HE_Sub,y=LE_Sub,paired=F,alternative="two.sided",exact=F,correct=F,conf.int=T,conf.level=0.95)$p.value} else {High_vs_Low3 = 1},
 Solid_vs_liquid3 =if(sum(S_Sub)>0 & sum(L_Sub)>0){Solid_vs_liquid3 = wilcox.test(x=S_Sub,y=L_Sub,paired=T,alternative="two.sided",exact=F,correct=F,conf.int=T,conf.level=0.95)$p.value} else {Solid_vs_liquid3 = 1},
 Solids3 = if(sum(HE_S)>0 & sum(LE_S)>0){Solids3 = wilcox.test(x=HE_S,y=LE_S,paired=F,alternative="two.sided",exact=F,correct=F,conf.int=T,conf.level=0.95)$p.value} else {Solids3 = 1},
@@ -815,9 +822,14 @@ High_S_vs_L3 = if(sum(HE_S)>0 & sum(HE_L)>0){High_S_vs_L3 = wilcox.test(x=HE_S,y
 Low_S_vs_L3 = if(sum(LE_S)>0 & sum(LE_L)>0){Low_S_vs_L3 = wilcox.test(x=LE_S,y=LE_L,paired=T,alternative="two.sided",exact=F,correct=F,conf.int=T,conf.level=0.95)$p.value} else {Low_S_vs_L3 = 1}
 )
 
-df_pvalues[2,] <- p.adjust(p = df_pvalues[1,] , method =  "BH",n = ncol(df_pvalues))
+df_pvalues[2,] <- NA
+#df_pvalues[2,1:2] <-NA 
+#df_pvalues[2,3:8] <- p.adjust(p = df_pvalues[1,3:8] , method =  "BH",n = 6)
+df_pvalues[2,] <- p.adjust(p = df_pvalues[1,] , method =  "BH",n = 6)
 df_pvalues <- as.data.frame(t(df_pvalues))
-df_pvalues$sig <- NA;
+#df_pvalues[,2] <- NA;
+df_pvalues[,2]  <- as.numeric(as.character(df_pvalues[,2]))
+df_pvalues$sig <- NA
 df_pvalues$sig[which(df_pvalues[,2] <= 0.05)] <-"**"; df_pvalues$sig[which(df_pvalues[,2] > 0.05)] <-"-"; 
 colnames(df_pvalues) <- c("p.value","p.adj","sig")
 df_pvalues$taxon <- taxon_obj
@@ -841,7 +853,7 @@ row.names(dfs_tax_level) <- 1: nrow(dfs_tax_level)
 dfs_tax_level$p.adj_total <- NA
 dfs_tax_level$p.adj_total <- p.adjust(p = dfs_tax_level$p.value, method =  "BH",n = nrow(dfs_tax_level))
 dfs_tax_level$sig_total <- NA;
-dfs_tax_level$sig_total[which(dfs_tax_level$p.adj_total <= 0.05)] <-"**"; dfs_tax_level$sig_total[which(dfs_tax_level$p.adj_total > 0.05)]  <-"-"; 
+dfs_tax_level$sig_total[which(dfs_tax_level$p.adj_total <= 0.05)] <-"**"; dfs_tax_level$sig_total[which(dfs_tax_level$p.adj_total > 0.05)]  <-"-";
 
 dfs_tax_level <- dfs_tax_level[which(dfs_tax_level$sig_total=="**"),]
 
@@ -934,7 +946,24 @@ p<-p+theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5,size=60),
 # dev.off()
 # p
 })
+#############################################
+#############################################
+p<-ggplot(composition_list_tax$Kingdom,aes(factor(sampleID),Value,fill=Taxon))+
+  geom_bar(stat="identity")+
+  facet_grid(. ~ Type + Phase, drop=TRUE,scale="free",space="free_x")
+p<-p+scale_fill_manual(values=c("gray93","gray85"))
+p<-p+theme_bw()+ylab("Relative abundances")
+p<-p+ scale_y_continuous(expand = c(0,0))+
+  theme(strip.background = element_rect(fill="gray85"))+theme(panel.margin = unit(0.3, "lines"))
+p<-p+theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5,size=60),
+           text=element_text(size=60),
+           axis.text.y  = element_text(size=60,colour="black"))+
+  xlab("Sample")
 
+ggsave(paste0(graph_dir,"/","compoplot_",names(composition_list_tax)[[1]],".pdf"),p,dpi=300,width =100,height=90,units = "cm",scale=1.2,limitsize = FALSE)
+
+#############################################
+#############################################
 
 
 composition_list_tax2 <- composition_list_tax
@@ -954,8 +983,32 @@ FDR_list <- list(
 )
 
 saveRDS(FDR_list,paste0(out_dir,"/","csv/","FDR_list.RDS"))
+HE_ps <- subset_taxa(ps3,ps3@sam_data$Treatment=="High feed efficiency")
+LE_ps <- subset_taxa(ps3,ps3@sam_data$Treatment=="Low feed efficiency")
 
-# 
+
+
+
+
+fam_sp_prod<- table(tax_table(ps3)[,1])#table(tax_table(ps3)[,1])
+fam_sp_prod <- fam_sp_prod[order(-fam_sp_prod)]
+fam_sp_prod_a <- fam_sp_prod
+fam_sp_prod_a <- (fam_sp_prod_a/sum(table(tax_table(ps3)[,1])))*100
+fam_sp_prod_a
+#
+fam_sp_prod_1 <- table(tax_table(HE_ps)[,1])#table(tax_table(ps3)[,1])
+fam_sp_prod_1 <- fam_sp_prod_1[order(-fam_sp_prod_1)]
+fam_sp_prod_1_1 <- fam_sp_prod_1
+fam_sp_prod_1_1 <- (fam_sp_prod_1_1/sum(table(tax_table(HE_ps)[,1])))*100
+fam_sp_prod_1_1
+#
+fam_sp_prod_2 <- table(tax_table(LE_ps)[,1])#table(tax_table(ps3)[,1])
+fam_sp_prod_2 <- fam_sp_prod_2[order(-fam_sp_prod_2)]
+fam_sp_prod_2_2 <- fam_sp_prod_2
+fam_sp_prod_2_2 <- (fam_sp_prod_2_2/sum(table(tax_table(LE_ps)[,1])))*100
+fam_sp_prod_2_2
+
+
 # pseq.rel <- microbiome::transform(ps, "compositional")
 # core.taxa.standard <- core_members(pseq.rel, detection = 0)
 # pseq.core <- core(pseq.rel, detection = 0, prevalence = .5)

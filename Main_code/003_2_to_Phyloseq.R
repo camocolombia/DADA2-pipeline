@@ -54,7 +54,19 @@ production_dir <- paste0(dat_dir,"/","production"); if(!file.exists(production_d
 #Calling production data
 production <- read.csv(paste0(production_dir,"/","production_data.csv"),header=T,sep="|")
 production$Treatment <- gsub("bottom","Low feed efficiency",production$Treatment); production$Treatment <- gsub("top","High feed efficiency",production$Treatment)
+production_LE <- production[which(production$Treatment=="Low feed efficiency"),]
+production_HE <- production[which(production$Treatment=="High feed efficiency"),]
 
+summary_Production <- data.frame(
+HE_FCR = paste0(round(mean(production_HE$FCE),2)," ± ",round(sd(production_HE$FCE),2)),
+LE_FCR = paste0(round(mean(production_LE$FCE),2)," ± ",round(sd(production_LE$FCE),2)),
+HE_ADI = paste0(round(mean(production_HE$av.dailyintake),2)," ± ",round(sd(production_HE$av.dailyintake),2)),
+LE_ADI = paste0(round(mean(production_LE$av.dailyintake),2)," ± ",round(sd(production_LE$av.dailyintake),2)),
+HE_ADG = paste0(round(mean(production_HE$ADG),2)," ± ",round(sd(production_HE$ADG),2)),
+LE_ADG = paste0(round(mean(production_LE$ADG),2)," ± ",round(sd(production_LE$ADG),2)),
+HE_TWG = paste0(round(mean(production_HE$total.wt.Gain),2)," ± ",round(sd(production_HE$total.wt.Gain),2)),
+HE_TWG = paste0(round(mean(production_LE$total.wt.Gain),2)," ± ",round(sd(production_LE$total.wt.Gain),2))
+)
 #Calling table sequence
 seqtab.nochim <- readRDS(paste0(seq_dir,"/","seqtab.nochim.RDS"))
 asv5 <- readRDS(paste0(out_dir,"/","csv","/","taxonomy_final.RDS"))
