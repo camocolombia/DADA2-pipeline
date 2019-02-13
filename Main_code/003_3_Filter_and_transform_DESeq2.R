@@ -3,7 +3,7 @@
 ##Chrystian C. Sosa 2018 Chapter 1               #
 ##2018-06-29                                     #
 ##NUIG - Teagasc Athenry                         #
-##ASSIGNING OTUs                                 #
+##ASSIGNING FORMAT AND FILTERING STEP            #
 ##################################################
 
 ##################################################
@@ -63,8 +63,14 @@ production_dir <- paste0(dat_dir,"/","production"); if(!file.exists(production_d
 #Defining functions to be use in the FDR approaches
 # calculate geometric means prior to estimate size factors
 gm_mean = function(x, na.rm=TRUE){
-  exp(sum(log(x[x > 0]), na.rm=na.rm) / length(x))
+  # if(sum(x,na.rm = na.rm)!=0){
+    z <-  exp(sum(log(x[x > 0]), na.rm=na.rm) / length(x))
+  # } else {
+  #   z <- NA
+  # }
+  return(z)
 }
+
 
 ##################################################
 ##################################################
@@ -220,7 +226,7 @@ ps_object2 <- list(ps_kingdom2 = ps_kingdom2,
                   ps_family2 = ps_family2,
                   ps_genus2 = ps_genus2
 )
-saveRDS(ps_object2,paste0(csv_dir,"/","Phyloseq_taxa_list_trams",".RDS"))s
+saveRDS(ps_object2,paste0(csv_dir,"/","Phyloseq_taxa_list_trams",".RDS"))
 
 ps_object3 <- list(
 pserie_kingdom = psmelt(ps_kingdom2) %>%   arrange(Kingdom),

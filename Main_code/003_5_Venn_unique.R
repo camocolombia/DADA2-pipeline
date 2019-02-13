@@ -3,7 +3,7 @@
 ##Chrystian C. Sosa 2018 Chapter 1               #
 ##2018-06-29                                     #
 ##NUIG - Teagasc Athenry                         #
-##ASSIGNING OTUs                                 #
+##VENN DIAGRAMS                                  #
 ##################################################
 
 ##################################################
@@ -37,6 +37,7 @@ library("StructFDR")
 library("gtools")
 library("VennDiagram")
 library("ggpubr")
+library("tidyverse")
 #install_github("JiyuanHu/massMap")
 
 ##################################################
@@ -77,8 +78,16 @@ ps <- readRDS(paste0(csv_dir,"/","Phyloseq_object_filter",".RDS"))
 ps@sam_data$Treatment <- factor(ps@sam_data$Treatment,levels = c("High feed efficiency","Low feed efficiency"))
 ps3 <-  readRDS(paste0(csv_dir,"/","Phyloseq_object_trans",".RDS"))
 
+
 ##################################################
-df <- FDR_list$BH_prop
+#df <- FDR_list$BH_prop
+
+df <- read.csv(paste0(csv_dir,"/","df_logchange.csv"),header = T)
+
+
+taxa_df <- data.frame(seqId=row.names(ps3@tax_table),ps3@tax_table)
+taxa_df$seqId <- as.character(taxa_df$seqId)
+
 ##################################################
 ##################################################
 #Defining dataframe for venn diagrams
@@ -107,7 +116,11 @@ write.csv(df,paste0(out_dir,"/","csv/","final_table.csv"),quote = F,row.names = 
 
 
 df_venn_graph <- df_venn
-df_venn_graph <- merge(df_venn_graph,ps3@tax_table,by.x="seqId",by.y="row.names")
+df_venn_graph$seqId <- as.character(df_venn_graph$seqId)
+#df_venn_graph <- merge(df_venn_graph,ps3@tax_table,by.x="seqId",by.y="row.names",sort=F)
+df_venn_graph <- left_join(df_venn_graph,taxa_df,by="seqId")
+  
+   # merge(df_venn_graph,ps3@tax_table,by.x="seqId",by.y="row.names",sort=F)
 df_venn_graph_HE <- df_venn_graph[which(df_venn_graph$HE==1 & df_venn_graph$LE==0),];
 df_venn_graph_HE$Group <- "High feed efficiency";df_venn_graph_HE <- df_venn_graph_HE[,c("seqId",colnames(ps3@tax_table),"Group")]
 df_venn_graph_LE <- df_venn_graph[which(df_venn_graph$HE==0 & df_venn_graph$LE==1),]
@@ -141,9 +154,11 @@ ggsave(paste0(graph_dir,"/","df_venn_graph_values",".pdf"),df_venn_graph_values_
 
 ##########High solid Vs Low solid
 
-
 df_venn_graph_S <- df_venn
-df_venn_graph_S <- merge(df_venn_graph_S,ps3@tax_table,by.x="seqId",by.y="row.names")
+df_venn_graph_S$seqId <- as.character(df_venn_graph_S$seqId)
+#df_venn_graph_S <- merge(df_venn_graph_S,ps3@tax_table,by.x="seqId",by.y="row.names")
+df_venn_graph_S <- left_join(df_venn_graph_S,taxa_df,by="seqId")
+
 df_venn_graph_SH <- df_venn_graph_S[which(df_venn_graph_S$SH==1 & df_venn_graph_S$SL==0),];
 df_venn_graph_SH$Group <- "High feed efficiency";df_venn_graph_SH <- df_venn_graph_SH[,c("seqId",colnames(ps3@tax_table),"Group")]
 df_venn_graph_LH <- df_venn_graph_S[which(df_venn_graph_S$SH==0 & df_venn_graph_S$LH==1),]
@@ -164,6 +179,7 @@ df_venn_graph_values_S <- ggplot(data=df_venn_graph_melt_S,aes(x=reorder(Var1, v
   ylab("Count")+
   # ylim(0,0.1)+
   scale_fill_manual("legend", values = c("red","blue"))+
+  scale_y_discrete(breaks =0:35)+
   theme(text=element_text(size=60),
         legend.text=element_text(size=60),
         axis.text.x  = element_text(size=60,colour="black",angle=90),
@@ -178,7 +194,10 @@ ggsave(paste0(graph_dir,"/","df_venn_graph_values_solid",".pdf"),df_venn_graph_v
 
 
 df_venn_graph_L <- df_venn
-df_venn_graph_L <- merge(df_venn_graph_L,ps3@tax_table,by.x="seqId",by.y="row.names")
+df_venn_graph_L$seqId <- as.character(df_venn_graph_L$seqId)
+#df_venn_graph_L <- merge(df_venn_graph_L,ps3@tax_table,by.x="seqId",by.y="row.names")
+df_venn_graph_L <- left_join(df_venn_graph_L,taxa_df,by="seqId")
+
 df_venn_graph_LH <- df_venn_graph_L[which(df_venn_graph_L$LH==1 & df_venn_graph_L$LL==0),];
 df_venn_graph_LH$Group <- "High feed efficiency";df_venn_graph_LH <- df_venn_graph_LH[,c("seqId",colnames(ps3@tax_table),"Group")]
 df_venn_graph_LL <- df_venn_graph_L[which(df_venn_graph_L$LH==0 & df_venn_graph_L$LL==1),]
@@ -285,25 +304,73 @@ ggsave(paste0(graph_dir,"/","veen_four",".pdf"),veen_four,dpi=300,width =160,hei
 df_venn
 ######################
 prop <- data.frame(
-  area1 = nrow(subset(df_venn, SH == 1)), 
-  area2 = nrow(subset(df_venn, LH ==1)),
-  area3 = nrow(subset(df_venn, SL == 1)),
-  area4 =nrow(subset(df_venn, LL ==1)),
-  n12 = nrow(subset(df_venn, SH == 1 & LH ==1)), 
-  n13 = nrow(subset(df_venn, SH == 1 & SL ==1)), 
-  n14 = nrow(subset(df_venn, SH == 1 & LL ==1)), 
-  n23 = nrow(subset(df_venn, LH == 1 & SL ==1)), 
-  n24 = nrow(subset(df_venn, LH == 1 & LL ==1)),
-  n34 = nrow(subset(df_venn, SL == 1 & LL ==1)), 
-  n123 = nrow(subset(df_venn, SH == 1 & LH ==1 & SL ==1)), 
-  n124 = nrow(subset(df_venn, SH == 1 & LH ==1 & LL ==1)), 
-  n134 = nrow(subset(df_venn, SH == 1 & SL ==1 & LL ==1)), 
+  area1 = nrow(subset(df_venn, SH == 1)), ##
+  area2 = nrow(subset(df_venn, LH ==1)),##
+  area3 = nrow(subset(df_venn, SL == 1)),## 
+  area4 =nrow(subset(df_venn, LL ==1)),##
+  n12 = nrow(subset(df_venn, SH == 1 & LH ==1)),##
+  n13 = nrow(subset(df_venn, SH == 1 & SL ==1)), ##
+  n14 = nrow(subset(df_venn, SH == 1 & LL ==1)), ##
+  n23 = nrow(subset(df_venn, LH == 1 & SL ==1)), ##
+  n24 = nrow(subset(df_venn, LH == 1 & LL ==1)), ##
+  n34 = nrow(subset(df_venn, SL == 1 & LL ==1)), #
+  n123 = nrow(subset(df_venn, SH == 1 & LH ==1 & SL ==1)),# 
+  n124 = nrow(subset(df_venn, SH == 1 & LH ==1 & LL ==1)), #
+  n134 = nrow(subset(df_venn, SH == 1 & SL ==1 & LL ==1)), #
   n234 = nrow(subset(df_venn, LH == 1 & SL ==1 & LL ==1)), 
   n1234 = nrow(subset(df_venn, SH == 1 & LH ==1 & SL ==1 & LL==1))
 )
 
-prop[2,] <- (prop[1,]/545)*100
-prop
+
+
+
+
+prop2 <- prop
+
+colnames(prop2) <- c(
+  "Solid_HE",#
+  "Liquid_HE",#
+  "Solid_LE",#
+  "Liquid_LE",#
+  "SH_LH",#
+  "SH_SL",#
+  "SH_LL",#
+  "LH_SL",#
+  "LH_LL",#
+  "SL_LL",#
+  "SH_LH_SL",
+  "SH_LH_LL",
+  "SH_SL_LL",
+  "LH_SL_LL",
+  "SH_LH_SL_LL"
+)
+
+
+prop2$HE_UNIQUE <- nrow(subset(df_venn, SH == 1 & LH ==1 & SL !=1 & LL!=1))
+prop2$LE_UNIQUE <- nrow(subset(df_venn, SH != 1 & LH !=1 & SL ==1 & LL==1))
+prop2$SOL_UNIQUE <- nrow(subset(df_venn, SH == 1 & LH !=1 & SL ==1 & LL!=1))
+prop2$LIQ_UNIQUE <- nrow(subset(df_venn, SH != 1 & LH ==1 & SL !=1 & LL==1))
+
+prop2$HE_SOL_UNIQUE <- nrow(subset(df_venn, SH == 1 & LH !=1 & SL !=1 & LL!=1))
+prop2$HE_LIQ_UNIQUE <- nrow(subset(df_venn, SH != 1 & LH ==1 & SL !=1 & LL!=1))
+
+prop2$LE_SOL_UNIQUE <- nrow(subset(df_venn, SH == 1 & LH !=1 & SL ==1 & LL!=1))
+prop2$LE_LIQ_UNIQUE <- nrow(subset(df_venn, SH != 1 & LH !=1 & SL !=1 & LL==1))
+
+
+prop2[2,] <- (prop2[1,]/nrow(df_venn))*100
+
+
+prop2$ITEM <- NA
+prop2$ITEM[[1]] <- "COUNTS"
+prop2$ITEM[[2]] <- "PERC"
+
+prop2 <- prop2[,c(ncol(prop2),1:(ncol(prop2)-1))]
+prop2 <-t(prop2)
+colnames(prop2) <- prop2[1,]
+prop2 <- prop2[-1,]
+write.csv(prop2,paste0(out_dir,"/","csv/","Venn_areas_group.csv"),quote = F,row.names = T)
+
 # 
 # 
 # 
@@ -344,3 +411,4 @@ prop
 # };rm(i)
 # 
 # df_venn2
+

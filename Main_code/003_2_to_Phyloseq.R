@@ -3,7 +3,7 @@
 ##Chrystian C. Sosa 2018 Chapter 1               #
 ##2018-06-29                                     #
 ##NUIG - Teagasc Athenry                         #
-##ASSIGNING OTUs                                 #
+##FORMATTING DATA TO PHYLOSEQ FORMAT             #
 ##################################################
 
 #Calling libraries
@@ -68,16 +68,19 @@ HE_TWG = paste0(round(mean(production_HE$total.wt.Gain),2)," ± ",round(sd(produc
 HE_TWG = paste0(round(mean(production_LE$total.wt.Gain),2)," ± ",round(sd(production_LE$total.wt.Gain),2))
 )
 #Calling table sequence
-seqtab.nochim <- readRDS(paste0(seq_dir,"/","seqtab.nochim.RDS"))
+#seqtab.nochim <- readRDS(paste0(seq_dir,"/","seqtab.nochim.RDS"))
 asv5 <- readRDS(paste0(out_dir,"/","csv","/","taxonomy_final.RDS"))
 seqid<-cbind(as.character(asv5$seq_id),as.character(asv5$final_taxon))
 colnames(seqid) <- c("seqid","final_taxon")
-samples.out <- rownames(seqtab.nochim)
+samples.out <- colnames(asv5)[3:54]#rownames(seqtab.nochim)
 #Importing tree
 tree_imp <- phyloseq::read_tree(paste0(seq_dir,"/","pml.tree"),errorIfNULL = T);tree2 <- tree_imp
 labels_T <- as.data.frame(matrix(ncol=1,nrow=length(tree_imp$tip.label)));colnames(labels_T) <- c("seqid")
 labels_T$seqid <- tree_imp$tip.label
-labels_T <- merge(labels_T,seqid,by="seqid",all=T);labels_T$final_taxon <- as.character(labels_T$final_taxon)
+#labels_T <-
+  
+labels_T <-  dplyr::full_join(data.frame(seqid=labels_T),as.data.frame(seqid),by="seqid")
+#labels_T <- merge(labels_T,seqid,by="seqid",all=T,sort = F);labels_T$final_taxon <- as.character(labels_T$final_taxon)
 tree_imp$tip.label <- labels_T$final_taxon
 tree_imp$tip.label <- gsub("_\\w+", "", tree_imp$tip.label)
 
@@ -114,7 +117,8 @@ ggsave(paste0(graph_dir,"/","taxomomic_depth_reads",".pdf"),tc1bp,dpi=300,width 
 #samples.out <- as.numeric(as.character(samples.out))
 subject <- sapply(strsplit(samples.out, "D"), `[`, 1)
 subject <- as.numeric(as.character(subject));subject2 <- as.data.frame(subject);colnames(subject2) <- "Reference.number"
-prod <- join(subject2,production,by="Reference.number",match="all")
+prod <- dplyr::full_join(subject2,production,by="Reference.number")
+#prod <- join(subject2,production,by="Reference.number",match="all")
 
 
 #(my_data) <- c("ADG","FCR","Average daily intake","pH","Total weight gain","Treatment")
@@ -141,11 +145,15 @@ taxa <- cbind(as.character(asv5$kingdom),
 row.names(taxa) <- as.character(asv5$seq_id);#
 #row.names(taxa) <- as.character(asv5$sequence)
 colnames(taxa) <- c("Kingdom","Phylum","Class","Order","Family","Genus","Species")
-colnames(seqtab.nochim) <- as.character(asv5$seq_id)
+#colnames(seqtab.nochim) <- as.character(asv5$seq_id)
 
 ##################################################
 #Formatting to phyloseq library
-ps <- phyloseq::phyloseq(otu_table(seqtab.nochim, taxa_are_rows=FALSE), 
+
+seq_samples <- t(asv5[,3:54])
+colnames(seq_samples) <- asv5$seq_id
+row.names(seq_samples) <- colnames(asv5[,3:54])
+ps <- phyloseq::phyloseq(otu_table(seq_samples, taxa_are_rows=FALSE),#seqtab.nochim, taxa_are_rows=FALSE), 
                sample_data(samdf), 
                tax_table(taxa),#,
                phy_tree(tree2)
@@ -256,3 +264,4 @@ p4 <- p4 + #geom_text(data=list_counts_db_k, aes(x = db, y = rel_per,
 p4
 
 # })
+

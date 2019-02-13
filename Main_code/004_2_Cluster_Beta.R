@@ -4,7 +4,7 @@
 ##Chrystian C. Sosa 2018 Chapter 1               #
 ##2018-06-29                                     #
 ##NUIG - Teagasc Athenry                         #
-##ASSIGNING OTUs                                 #
+##Testing beta diversity PERMANOVA               #
 ##################################################
 
 ##################################################
@@ -80,6 +80,8 @@ ps3 <-  readRDS(paste0(csv_dir,"/","Phyloseq_object_trans",".RDS"))
 metadata <- as(sample_data(ps3), "data.frame")
 GP.chl = prune_samples(ps@sam_data$sampleID==10707,ps)
 
+taxa_df <- data.frame(seqId=row.names(ps3@tax_table),ps3@tax_table)
+taxa_df$seqId <- as.character(taxa_df$seqId)
 #############################################################################################
 #############################################################################################
 #############################################################################################
@@ -138,7 +140,7 @@ rfFit <- train(Treatment ~ ., data = training,
                trControl = control
 )
 
-rfClasses <- predict(rfFit, newdata = testing)
+  rfClasses <- predict(rfFit, newdata = testing)
 confusionMatrix(rfClasses, testing$Treatment)
 varRF <- varImp(rfFit)
 importance <- varRF$importance#
@@ -146,7 +148,9 @@ importance$OTU <- row.names(importance)
 importance <- importance[,c(2,1)]
 importance <- importance[order(varRF$importance$Overall,decreasing = TRUE),]
 #importance <- importance[1:25,]
-importance <- merge(importance,ps3@tax_table,by.x="OTU",by.y="row.names",all=F)
+#importance <- merge(importance,ps3@tax_table,by.x="OTU",by.y="row.names",all=F)
+colnames(taxa_df)[1] <- "OTU"
+importance <- left_join(importance,taxa_df,by="OTU")
 importance <- importance[order(importance$Overall,decreasing = TRUE),]
 
 #View(importance)
@@ -219,14 +223,19 @@ labels <-   cbind(as.character(ps@sam_data$Subject),
                   as.character(ps@sam_data$Phase),
                   paste0(as.character(ps@sam_data$sampleID),"-",as.character(ps@sam_data$Phase))
                   )
-row.names(labels) <- as.character(ps@sam_data$Subject)
 
+row.names(labels) <- as.character(ps@sam_data$Subject)
+labels <- as.data.frame(labels); labels$x <- row.names(labels)
+labels$V1 <- as.character(labels$V1)
 #We will color the labels according to countries(group_info[,1])
 hc_d <- dendro_data(as.dendrogram(hc))
-hc_d$labels$Type <- merge(hc_d$labels,labels,by.y="row.names",by.x="label")[,8]
-hc_d$labels$Treatment <- merge(hc_d$labels,labels,by.y="row.names",by.x="label")[,6]
+hc_d$labels$V1 <- as.character(hc_d$labels$x)
+# hc_d$labels$Type <- merge(hc_d$labels,labels,by.y="row.names",by.x="label")[,8]
+# hc_d$labels$Treatment <- merge(hc_d$labels,labels,by.y="row.names",by.x="label")[,6]
 
-
+hc_d$labels$Type <-left_join(hc_d$labels,labels,"V1")[,8]
+hc_d$labels$Treatment <-left_join(hc_d$labels,labels,"V1")[,6]
+  
 hc_d$labels$color <- NA
 hc_d$labels$color[which(hc_d$labels$Treatment=="Low feed efficiency")] <- "red"
 hc_d$labels$color[which(hc_d$labels$Treatment=="High feed efficiency")] <- "blue"
@@ -274,10 +283,41 @@ legend3d("topright", legend = c("High feed efficiency - solid","High feed effici
                                      "Low feed efficiency - solid","Low feed efficiency - liquid"),
          pch = 16, col = c("darkblue", "green", "orange","red"), cex=2, inset=c(0.01))
 
+###############################################
+
+dist_b_r <-(as.matrix(dist_b))
+diag(dist_b_r)<- NA
+
+dist_br_f  <- as.data.frame(cbind(ps@sam_data$Subject,
+                                  ps@sam_data$sampleID,
+                                  ps@sam_data$Treatment,
+                                  ps@sam_data$pH,
+                                  ps@sam_data$FCR,
+                                  colMedians(dist_b_r,na.rm = T),
+                                  colSds(dist_b_r,na.rm = T)
+                                  ))
+dist_br_f[,2] <- as.factor(ps@sam_data$sampleID)
+dist_br_f[,3] <- as.factor(ps@sam_data$Treatment)
+colnames(dist_br_f) <- c("Subject","Sample","Treatment","pH","FCR","Dist","Dist_SD")
+#plot(ps@sam_data$FCR,colMedians(dist_b_r,na.rm = T),col= ps@sam_data$Treatment,pch=)
 
 
 
-require(animation);require(rgl);require(magick)
+p_dist<- ggplot(data = dist_br_f) +
+  # geom_segment(aes(x=x, y=y, xend=xend, yend=yend)) +
+  # coord_flip() +
+  # scale_x_discrete(labels=label(hc_d)$Type) +
+  geom_point(data=dist_br_f, aes(x = pH , y = Dist, color = Treatment), alpha = 1) +
+  #p1 <- p1 + guides(colour = guide_legend(override.aes = list(size=3, alpha = 1)))+
+  #scale_color_manual(values = cols)+
+  scale_color_manual(name="Groups",labels=c("High feed efficiency","Low feed efficiency"),values = c("blue","red"))+
+  ylab("Distance (beta diversity: Bray-Curtis)") + theme_bw()+
+  theme(axis.text.y = element_text(color = dist_br_f$Treatment),
+        axis.title.y = element_blank())
+p_dist <- p_dist + geom_text(data=dist_br_f,
+                     aes(label=Sample, x=pH, y=Dist, colour=Treatment))
+p_dist
+#require(animation);require(rgl);require(magick)
 # dir.create("animation")
 # p_images <- list()
 # for (i in 1:90) {
@@ -336,24 +376,81 @@ library(vegan)
 
 bray_not_na <- phyloseq::distance(ps3, method = "bray")
 ps4 <- ps
-for(i in 1:ncol(ps4@otu_table)){
-  cat(i,"\n")
-  ps4@otu_table[,i][which(ps4@otu_table[,i]>0)] <- 1
-};rm(i) 
+# for(i in 1:ncol(ps4@otu_table)){
+#   cat(i,"\n")
+#   ps4@otu_table[,i][which(ps4@otu_table[,i]>0)] <- 1
+# };rm(i) 
 bray_jacc <- phyloseq::distance(ps4, method = "jaccard",binary = TRUE)
 hclust_Jacc <- hclust(bray_jacc,"ward.D")
 #plot(hclust(bray_jacc))
 s_df <- data.frame(sample_data(ps3))
 s_df$Subject <- factor(s_df$Subject)
+
+
+
+########################################################
+###############################################
+
+dist_j_r <-(as.matrix(bray_jacc))
+diag(dist_j_r)<- NA
+
+dist_j_f  <- as.data.frame(cbind(ps@sam_data$Subject,
+                                  ps@sam_data$sampleID,
+                                  ps@sam_data$Treatment,
+                                  ps@sam_data$pH,
+                                  ps@sam_data$FCR,
+                                  colMedians(dist_j_r,na.rm = T),
+                                  colSds(dist_j_r,na.rm = T),
+                                 global(ps, index = "shannon"),
+                                 global(ps, index = "simpson")
+))
+dist_j_f[,2] <- as.factor(ps@sam_data$sampleID)
+dist_j_f[,3] <- as.factor(ps@sam_data$Treatment)
+colnames(dist_j_f) <- c("Subject","Sample","Treatment","pH","FCR","Dist","Dist_SD","Shannon","Simpson")
+#plot(ps@sam_data$FCR,colMedians(dist_b_r,na.rm = T),col= ps@sam_data$Treatment,pch=)
+
+(dist_j_f$Dist/max(dist_j_f$Dist))/(dist_j_f$Shannon/max(dist_j_f$Shannon))
+
+p_dist_j <- ggplot(data = dist_j_f) +
+  # geom_segment(aes(x=x, y=y, xend=xend, yend=yend)) +
+  # coord_flip() +
+  # scale_x_discrete(labels=label(hc_d)$Type) +
+  geom_point(data=dist_j_f, aes(x = Shannon , y = Dist, color = Treatment), alpha = 1) +
+  #p1 <- p1 + guides(colour = guide_legend(override.aes = list(size=3, alpha = 1)))+
+  #scale_color_manual(values = cols)+
+  scale_color_manual(name="Groups",labels=c("High feed efficiency","Low feed efficiency"),values = c("blue","red"))+
+  ylab("Distance (beta diversity: Jaccard)") + theme_bw()+
+  theme(axis.text.y = element_text(color = dist_j_f$Treatment),
+        axis.title.y = element_blank())
+p_dist_j <- p_dist_j + geom_text(data=dist_j_f,
+                             aes(label=Sample, x=Shannon, y=Dist, colour=Treatment))
+p_dist_j
+
+
+
+#######################################################
+
+
+
+
 #hc_d$labels$label <- as.character(hc_d$labels$label)
 ###CLuster
 require(ggdendro)
 #We will color the labels according to countries(group_info[,1])
 hc_d <- dendro_data(as.dendrogram(hclust_Jacc))
-hc_d$labels$Type <- 
-  base::merge(hc_d$labels,s_df,by.y="Subject",by.x="label")[,"Phase"]#
-hc_d$labels$Treatment <-  merge(hc_d$labels,s_df,by.y="Subject",by.x="label")[,"Treatment"]
+hc_d$labels$Subject <- hc_d$labels$label
+
+hc_d$labels$Type <- left_join(hc_d$labels,s_df,by="Subject")[,"Phase"]
+hc_d$labels$Treatment <-  left_join(hc_d$labels,s_df,by="Subject")[,"Treatment"]
 hc_d$labels$SubjectID <-  merge(hc_d$labels,s_df,by.y="Subject",by.x="label")[,"sampleID"]
+
+
+  #base::merge(hc_d$labels,s_df,by.y="Subject",by.x="label")[,"Phase"]#
+
+# 
+# hc_d$labels$Treatment <-  merge(hc_d$labels,s_df,by.y="Subject",by.x="label")[,"Treatment"]
+# hc_d$labels$SubjectID <-  merge(hc_d$labels,s_df,by.y="Subject",by.x="label")[,""]
+
 hc_d$labels$SubjectID <-  paste0(hc_d$labels$SubjectID," - ",hc_d$labels$Type)
 #  merge(hc_d$labels,labels,by.y="row.names",by.x="label")[,5]
 
@@ -440,9 +537,36 @@ legend3d("topright", legend = c("High feed efficiency - solid","High feed effici
 
 
 
+permanova_results <- 
+data.frame(bray_df =permanova$aov.tab$Df[1],
+           bray_SumsOfSqs = permanova$aov.tab$SumsOfSqs[1],
+           bray_MeanSqs = permanova$aov.tab$MeanSqs[1],
+           bray_R2=permanova$aov.tab$R2[1], 
+           bray_F=permanova$aov.tab$F.Model[1],
+           bray_Pr_F=permanova$aov.tab$`Pr(>F)`[1],
+           bray_perm_bet_df =perm_beta$tab$Df[1],
+           #beta
+           bray_perm_bet_SumsOfSqs =perm_beta$tab$`Sum Sq`[1],
+           bray_perm_bet_df_MeanSq =perm_beta$tab$`Mean Sq`[1],
+           bray_perm_bet_df_F =perm_beta$tab$F[1],
+           bray_perm_bet_df_F =perm_beta$tab$N.Perm[1],
+           bray_perm_bet_df_Pr_F =perm_beta$tab$`Pr(>F)`[1],
+           ##################################################
+           jaccard_df =permanova_j$aov.tab$Df[1],
+           jaccard_SumsOfSqs = permanova_j$aov.tab$SumsOfSqs[1],
+           jaccard_MeanSqs = permanova_j$aov.tab$MeanSqs[1],
+           jaccard_R2=permanova_j$aov.tab$R2[1], 
+           jaccard_F=permanova_j$aov.tab$F.Model[1],
+           jaccard_Pr_F=permanova_j$aov.tab$`Pr(>F)`[1],
+           #beta
+           jaccard_perm_bet_SumsOfSqs =perm_beta_j$tab$`Sum Sq`[1],
+           jaccard_perm_bet_df_MeanSq =perm_beta_j$tab$`Mean Sq`[1],
+           jaccard_perm_bet_df_F =perm_beta_j$tab$F[1],
+           jaccard_perm_bet_df_F =perm_beta_j$tab$N.Perm[1],
+           jaccard_perm_bet_df_Pr_F =perm_beta_j$tab$`Pr(>F)`[1]
+           )
 
-
-
+write.csv(permanova_results,paste0(out_dir,"/","csv/","permanova_results.csv"),quote = F,row.names = F)
 
 
 
@@ -469,7 +593,7 @@ cap_plot <- plot_ordination(
   aes(shape = Phase) + 
   geom_point(aes(colour = Treatment), alpha = 0.4, size = 4) + 
   geom_point(colour = "grey90", size = 1.5) + 
-  scale_color_manual(values = c("red","blue")
+  scale_color_manual(values = c("blue","red")
   )
 
 

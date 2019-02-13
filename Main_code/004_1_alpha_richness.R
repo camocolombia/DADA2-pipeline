@@ -31,6 +31,8 @@ library("phytools")
 mainDir <- "E:/DADA2"
 chapter <- "chapter_1"
 levels <- c("kingdom","phylum","class","order","family","genus","species")
+ps <- readRDS(paste0(csv_dir,"/","Phyloseq_object_filter",".RDS"))
+
 #Defining workspace folders
 dat_dir <- paste0(mainDir,"/",chapter,"/","data"); if(!file.exists(dat_dir)){dir.create(dat_dir)}
 production_dir <- paste0(dat_dir,"/","production"); if(!file.exists(production_dir)){dir.create(production_dir)} # Copy here the production data
@@ -77,7 +79,7 @@ plot_abundance(psOrd,"")
 
 
 #Loading Phyloseq object
-ps <- readRDS(paste0(csv_dir,"/","Phyloseq_object",".RDS"))
+#ps <- readRDS(paste0(csv_dir,"/","Phyloseq_object",".RDS"))
 levels(ps@sam_data$Treatment) <- c("Low feed efficiency","High feed efficiency")
 sample_data(ps)$UsableReads<-sample_sums(ps)
 

@@ -5,7 +5,7 @@
 ##Chrystian C. Sosa 2018 Chapter 1               #
 ##2018-06-29                                     #
 ##NUIG - Teagasc Athenry                         #
-##Correlate variables                            #
+##Correlate variables using high taxonomic levels#
 ##################################################
 
 ##################################################
@@ -83,51 +83,98 @@ metadata <- as(sample_data(ps3), "data.frame")
 
 ps_object <- readRDS(paste0(csv_dir,"/","Phyloseq_taxa_list",".RDS"))
 ps_object2 <- readRDS(paste0(csv_dir,"/","Phyloseq_taxa_list_trams",".RDS"))
-ps_object3 <- readRDS(paste0(csv_dir,"/","Phyloseq_taxa_list_melt",".RDS"))
 
 taxa_df <- data.frame(seqId=row.names(ps3@tax_table),ps3@tax_table)
 taxa_df$seqId <- as.character(taxa_df$seqId)
 
-correlation.table <- microbiome::associate(ps3@otu_table, meta(ps3)[,-c(1:4,10)], 
+
+correlation.table_taxa <- lapply(1:(length(levels)-1),function(i){
+  
+    cat("Proccesing: ",levels[[i]],"\n")
+
+# HFE_Sub <- phyloseq::subset_samples(ps_object2[[i]],Treatment="High feed efficiency")
+# LFE_Sub <- phyloseq::subset_samples(ps_object2[[i]],Treatment="Low feed efficiency")
+# LI_Sub <- phyloseq::subset_samples(ps_object2[[i]],Phase="liquid")
+# SO_Sub <- phyloseq::subset_samples(ps_object2[[i]],Phase="solid")
+
+
+  HFE_Sub <- as.data.frame((otu_table(subset_samples(ps_object2[[i]], Treatment=="High feed efficiency"))))
+  LFE_Sub <- as.data.frame((otu_table(subset_samples(ps_object2[[i]], Treatment=="High feed efficiency"))))
+  LI_Sub <- as.data.frame((otu_table(subset_samples(ps_object2[[i]], Phase=="liquid"))))
+  SO_Sub <- as.data.frame((otu_table(subset_samples(ps_object2[[i]], Phase=="solid"))))
+
+correlation.table <- microbiome::associate(ps_object2[[i]]@otu_table, meta(ps_object2[[i]])[,-c(1:4,10)], 
                                            method = "spearman",
                                            mode = "table", p.adj.threshold = 0.05, n.signif = 1,
                                            p.adj.method = "fdr")
-#correlation.table <- correlation.table[which(correlation.table$p.adj<=0.05),]
-hm_plot <- microbiome::heat(correlation.table, "X1", "X2", fill = "Correlation", 
-                 star = "p.adj", p.adj.threshold = 0.05,
-                 colours = c("darkred","red","white","blue","darkblue"),plot.values = F,star.size=40,legend.text = "Spearman"
-                 
-)+
-  theme(panel.background = element_rect(fill = "gray95"),
-        text=element_text(size=60),axis.text.x  = element_text(size=60,colour="black",angle = 90, hjust = 1),
-        axis.text.y  = element_text(size=60,colour="black")) +
-  #scale_fill_continuous(guide = guide_colorbar(direction = "horizontal")) +
-  theme(legend.position="right",legend.direction = "vertical",legend.key.size =  unit(1.5, "in"))
+colnames(correlation.table)[1] <- "ASV"
 
-# hm_plot <-  hm_plot  +
-#   theme(text=element_text(size=60),
-#                              legend.text=element_text(size=60),
-#                              axis.text.x  = element_text(size=60,colour="black",angle=90),
-#                              axis.text.y  = element_text(size=60,colour="black"))
-#correlation.table
-ggsave(paste0(graph_dir,"/","heat_correlation_abund",".pdf"),hm_plot,dpi=300,width =160,height=130,units = "cm",scale=1.2,limitsize = FALSE)
+tax_table_i <- as.data.frame(as(tax_table(ps_object2[[i]]), "matrix"))#as.as.data.frame(matrix(ps_object2[[i]]@tax_table))
+tax_table_i$ASV <- row.names(ps_object2[[i]]@tax_table)
+tax_table_i <- tax_table_i[,c("ASV",Hmisc::capitalize(levels[i]))]
+tax_table_i$mean <- colMeans(ps_object2[[i]]@otu_table)
+tax_table_i$sd <- matrixStats::colSds(ps_object2[[i]]@otu_table)
+tax_table_i$HFE_mean <- colMeans(HFE_Sub)
+tax_table_i$HFE_sd <- matrixStats::colSds(as.matrix(HFE_Sub))
+tax_table_i$LFE_mean <- colMeans(LFE_Sub)
+tax_table_i$LFE_sd <- matrixStats::colSds(as.matrix(LFE_Sub))
+tax_table_i$SO_mean <- colMeans(SO_Sub)
+tax_table_i$SO_sd <- matrixStats::colSds(as.matrix(SO_Sub))
+tax_table_i$LI_mean <- colMeans(LI_Sub)
+tax_table_i$LI_sd <- matrixStats::colSds(as.matrix(LI_Sub))
+tax_table_i$status_FE <- NA;#tax_table_i$status_FE <- tax_table_i$HFE_mean > tax_table_i$LFE_mean
+tax_table_i$status_PHASE <- NA;#tax_table_i$status_PHASE <- tax_table_i$LI_mean > tax_table_i$SO_mean
 
-bacteria_df <- data.frame(seqId=names(colMeans(ps@otu_table)),
-                          mean_C = colMeans(ps@otu_table),sd_C=colSds(ps@otu_table),
-                          mean = colMeans(ps3@otu_table),sd=colSds(ps3@otu_table))
+for(j in 1:nrow(tax_table_i)){
+ if(tax_table_i$HFE_mean[[j]] > tax_table_i$LFE_mean[[j]]){
+   tax_table_i$status_FE[[j]] <- "HE" 
+   } else if(tax_table_i$HFE_mean[[i]] == tax_table_i$LFE_mean[[j]]) {
+   tax_table_i$status_FE[[j]] <- "BOTH"    
+   } else {
+   tax_table_i$status_FE[[j]] <- "LE" 
+   }
+  #########
+  if(tax_table_i$LI_mean[[j]] > tax_table_i$SO_mean[[j]]){
+    tax_table_i$status_PHASE[[j]] <- "LI" 
+  } else if(tax_table_i$LI_mean[[j]] == tax_table_i$SO_mean[[j]]) {
+    tax_table_i$status_PHASE[[j]] <- "BOTH"    
+  } else {
+    tax_table_i$status_PHASE[[j]] <- "SO" 
+  }
+  
+};rm(j)
 
-bacteria_df$seqId <- as.character(bacteria_df$seqId)
+tax_table_i$status_FE[which(tax_table_i$status_FE==T)] <- "HE"
+tax_table_i$status_FE[which(tax_table_i$status_FE==F)] <- "LE"
 
-colnames(correlation.table) <- c("seqId","variable","cor","p.adj")
-correlation.table$seqId <- as.character(correlation.table$seqId)
+tax_table_i$status_PHASE[which(tax_table_i$status_PHASE==T)] <- "LI"
+tax_table_i$status_PHASE[which(tax_table_i$status_PHASE==F)] <- "SO"
 
-correlation.table <- left_join(correlation.table,bacteria_df,by="seqId")
-correlation.table <- left_join(correlation.table,taxa_df,by="seqId")
+tax_table_i$taxon <- levels[[i]]
+#tax_table_i <- tax_table_i[which(tax_table_i$p_sign=="*"),]
 
 
-write.csv(correlation.table,paste0(out_dir,"/","csv/","correlation.table_full.csv"),quote = F,row.names = F)
+#tax_table_i <- tax_table_i[complete.cases(tax_table_i[,i]),]
 
-write.csv(correlation.table[which(correlation.table$p.adj<0.05),],paste0(out_dir,"/","csv/","correlation.table.csv"),quote = F,row.names = F)
+#colnames(tax_table_i)[1] <-    colnames(ps_object2[[i]]@tax_table)[i]
+
+correlation.table <- dplyr::left_join(correlation.table,tax_table_i,"ASV")
+correlation.table$p_sign <- NA
+correlation.table$p_sign[which(correlation.table$p.adj<0.05)] <- "*"
+correlation.table <- correlation.table[which(correlation.table$p_sign=="*"),]
+#correlation.table <- correlation.table[,-5]
+colnames(correlation.table)[5] <- "Name"
+return(correlation.table)
+
+cat("Done: ",levels[[i]],"\n")
+
+})
+
+correlation.table_taxa <- base::do.call(rbind,correlation.table_taxa)
+colnames(correlation.table_taxa)[2] <- "Variable"
+
+correlation.table_taxa <- correlation.table_taxa[,c(1:4,19,18,5,6:17)]
+write.csv(correlation.table_taxa,paste0(out_dir,"/","csv/","correlation.table_high_taxomomy_full.csv"),quote = F,row.names = F)
 
 #ps_object$ps_genus
 

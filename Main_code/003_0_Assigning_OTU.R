@@ -15,7 +15,8 @@ library("plyr")
 library("phyloseq")
 library("microbiome")
 library("dada2")
-
+library("tidyverse")
+library("stringr")
 #Defining paths to be analyzed
 # mainDir <- "E:/Dropbox/Dropbox/Paper_PhD"
 # chapter <- "chapter_1
@@ -178,7 +179,7 @@ write.table(asv_tab,  paste0(seq_dir,"/","ASVs_counts.csv"), sep=",", quote=F,ro
 #Getting a SILVA taxonomy
 asv_tab_silva <- as.data.frame(unname(genus.species_silva))
 asv_tab_silva$sequence <- NA; asv_tab_silva$sequence <- row.names(genus.species_silva)
-s <-  as.character(merge(asv_tab_silva,asv_tab,"sequence",all = T)$seq_id)
+s <-  as.character(merge(asv_tab_silva,asv_tab,"sequence",all = T,sort = F)$seq_id)
 asv_tab_silva$seq_id <- NA; asv_tab_silva$seq_id <- s
 asv_tab_silva <- asv_tab_silva[,c(9,1:7)]
 colnames(asv_tab_silva) <- c("seq_id",levels)
@@ -198,7 +199,7 @@ colnames(asv_tab_silva) <- c("seq_id",levels)
  #Getting a Hungate taxonomy
  asv_tab_hungate <- as.data.frame(unname(genus.species_hungate))
  asv_tab_hungate$sequence <- NA; asv_tab_hungate$sequence <- row.names(genus.species_hungate)
- s <-  as.character(merge(asv_tab_hungate,asv_tab,"sequence",all = T)$seq_id)
+ s <-  as.character(merge(asv_tab_hungate,asv_tab,"sequence",all = T,sort = F)$seq_id)
  asv_tab_hungate$seq_id <- NA; asv_tab_hungate$seq_id <- s
  asv_tab_hungate <- asv_tab_hungate[,c(9,1:7)]
  colnames(asv_tab_hungate) <- c("seq_id",levels)
@@ -243,7 +244,7 @@ write.csv(asv_tab_gg,paste0(out_dir,"/","csv","/","asv_tab_gg.csv"),row.names = 
 blast_match <- read.csv(paste0(seq_dir,"/","16S_BLAST.csv"))
 blast_match <- blast_match[,c("QueryID","superkingdom","phylum","class","order","family","genus","species")]
 colnames(blast_match)[2] <- "kingdom"
-asv_tab_blast <- merge(asv_tab,blast_match,by.x="seq_id",by.y="QueryID")
+asv_tab_blast <- merge(asv_tab,blast_match,by.x="seq_id",by.y="QueryID",sort = F)
 write.csv(asv_tab_blast,paste0(out_dir,"/","csv","/","asv_tab_blast.csv"),row.names = F,quote = F,na = "")
 
 #Merging all taxonomies databases in a unique file
@@ -259,11 +260,23 @@ colnames(asv_tab_gg2) <- c("seq_id","GG_kingdom","GG_phylum","GG_class","GG_orde
 colnames(asv_tab_blast2) <- c("seq_id","BLAST_kingdom","BLAST_phylum","BLAST_class","BLAST_order","BLAST_family","BLAST_genus","BLAST_species")
 colnames(asv_tab_hungate2) <- c("seq_id","HUNGATE_kingdom","HUNGATE_phylum","HUNGATE_class","HUNGATE_order","HUNGATE_family","HUNGATE_genus","HUNGATE_species")
 
-asv0 <- merge(asv_tab,asv_tab_silva2,by="seq_id",all=T)
-asv1 <- merge(asv0,asv_tab_rdp2,by="seq_id",all=T)
-asv2 <- merge(asv1,asv_tab_gg2,by="seq_id",all=T)
-asv3 <- merge(asv2,asv_tab_blast2,by="seq_id",all=T)
-asv4 <- merge(asv3,asv_tab_hungate2,by="seq_id",all=T)
+
+asv_tab$seq_id <- as.character(asv_tab$seq_id)
+asv_tab_silva2$seq_id <- as.character(asv_tab_silva2$seq_id)
+asv_tab_gg2$seq_id <- as.character(asv_tab_gg2$seq_id)
+asv_tab_blast2$seq_id <- as.character(asv_tab_blast2$seq_id)
+asv_tab_hungate2$seq_id <- as.character(asv_tab_hungate2$seq_id)
+
+asv0 <- dplyr::full_join(asv_tab,asv_tab_silva2,by="seq_id")
+asv1 <- dplyr::full_join(asv0,asv_tab_rdp2,by="seq_id")
+asv2 <- dplyr::full_join(asv1,asv_tab_gg2,by="seq_id")
+asv3 <- dplyr::full_join(asv2,asv_tab_blast2,by="seq_id")
+asv4 <- dplyr::full_join(asv3,asv_tab_hungate2,by="seq_id")
+# asv0 <- merge(asv_tab,asv_tab_silva2,by="seq_id",all=T,sort = F)
+# asv1 <- merge(asv0,asv_tab_rdp2,by="seq_id",all=T,sort = F)
+# asv2 <- merge(asv1,asv_tab_gg2,by="seq_id",all=T,sort = F)
+# asv3 <- merge(asv2,asv_tab_blast2,by="seq_id",all=T,sort = F)
+# asv4 <- merge(asv3,asv_tab_hungate2,by="seq_id",all=T,sort = F)
 
 #Detecting taxonomic levels covered by taxonomic db
 asv4$SILVA_LEVELS <- NA
@@ -380,10 +393,11 @@ if(is.na(asv5$LEVELS_COVERED[[i]])){
   } 
 };rm(i)
 
-asv5$LEVELS_COVERED[which(is.na(asv5$final_taxon))] <-7
-asv5$genus[which(is.na(asv5$final_taxon) & asv5$LEVELS_COVERED>1)] <- "Eubacterium"
+#asv5$LEVELS_COVERED[which(is.na(asv5$final_taxon))] <-7
+#asv5$genus[which(is.na(asv5$final_taxon) & asv5$LEVELS_COVERED>1)] <- "Eubacterium"
 asv5$final_taxon[which(is.na(asv5$final_taxon) & asv5$LEVELS_COVERED>1)] <-   
 asv5$species[which(is.na(asv5$final_taxon) & asv5$LEVELS_COVERED>1)]
+
 
 asv5$final_taxon[which(asv5$final_taxon=="Unclassified")] <-
 paste0(asv5$final_taxon[which(asv5$final_taxon=="Unclassified")],"_",1:length(asv5$final_taxon[which(asv5$final_taxon=="Unclassified")]))
@@ -395,6 +409,14 @@ asv5$final_taxon[which(asv5$final_taxon=="Mitochondria")] <- "Rickettsiales"
 asv5$LEVELS_COVERED[which(asv5$final_taxon=="mitochondria")] <- 4
 asv5$family[which(asv5$final_taxon=="mitochondria")] <-NA
 asv5$final_taxon[which(asv5$final_taxon=="mitochondria")] <- "Rickettsiales"
+
+
+
+asv5$final_taxon[which(asv5$final_taxon=="[Eubacterium] cylindroides")] <- "Eubacterium cylindroides"
+asv5$final_taxon[which(asv5$final_taxon=="[Eubacterium] eligens")] <- "Eubacterium eligens"
+asv5$final_taxon[which(asv5$final_taxon=="[Mogibacteriaceae]")] <- "Mogibacteriaceae"
+asv5$final_taxon[which(asv5$final_taxon=="[Paraprevotellaceae]")] <- "Paraprevotellaceae"
+asv5$final_taxon[which(asv5$final_taxon=="[Prevotella]")] <- "Prevotella"
 
 asv5$sequence_length <- NA
 for(i in 1:nrow(asv5)){

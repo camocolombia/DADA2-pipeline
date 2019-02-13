@@ -185,32 +185,144 @@ sp
 
 
 library(psych)
-describe(subset(sample_data(ps),Treatment=="High feed efficiency")$Simpson,
-         type=2)$mean   
+# describe(subset(sample_data(ps),Treatment=="High feed efficiency")$Simpson,
+#          type=2)$mean   
+###########################################################################
+###########################################################################
+###########################################################################
 
 
 wilcox_list_DIV <- data.frame(
+  ###########################################################################
+  #FEED EFFICIENCY SIMPSON
 SIMP_HE = describe(subset(sample_data(ps),Treatment=="High feed efficiency")$Simpson,
                    type=2)$mean,
 SIMP_HE_SE = describe(subset(sample_data(ps),Treatment=="High feed efficiency")$Simpson,
-                   type=2)$se,
+                   type=2)$sd,
 SIMP_LE = describe(subset(sample_data(ps),Treatment=="Low feed efficiency")$Simpson,
                    type=2)$mean,
 SIMP_LE_SE = describe(subset(sample_data(ps),Treatment=="Low feed efficiency")$Simpson,
-                   type=2)$se,
-SIMP_EFF = wilcox.test(subset(sample_data(ps),Treatment=="High feed efficiency")$Simpson,
+                   type=2)$sd,
+SIMP_EFF_pvalue = wilcox.test(subset(sample_data(ps),Treatment=="High feed efficiency")$Simpson,
                        subset(sample_data(ps),Treatment=="Low feed efficiency")$Simpson)$p.value,
-
+###########################################################################
+#FEED EFFICIENCY SHANNON
 SHANN_HE = describe(subset(sample_data(ps),Treatment=="High feed efficiency")$Shannon,
                    type=2)$mean,
-SHANN_HE_SE = describe(subset(sample_data(ps),Treatment=="High feed efficiency")$Shannon,
-                      type=2)$se,
+SHANN_HE_SD = describe(subset(sample_data(ps),Treatment=="High feed efficiency")$Shannon,
+                      type=2)$sd,
 SHANN_LE = describe(subset(sample_data(ps),Treatment=="Low feed efficiency")$Shannon,
                    type=2)$mean,
-SHANN_LE_SE = describe(subset(sample_data(ps),Treatment=="Low feed efficiency")$Shannon,
-                      type=2)$se,
-SHANN_EFF = wilcox.test(subset(sample_data(ps),Treatment=="High feed efficiency")$Shannon,
-                       subset(sample_data(ps),Treatment=="Low feed efficiency")$Shannon)$p.value
+SHANN_LE_SD = describe(subset(sample_data(ps),Treatment=="Low feed efficiency")$Shannon,
+                      type=2)$sd,
+SHANN_EFF_pvalue = wilcox.test(subset(sample_data(ps),Treatment=="High feed efficiency")$Shannon,
+                       subset(sample_data(ps),Treatment=="Low feed efficiency")$Shannon)$p.value,
+###########################################################################
+#PHASE SIMPSON
+SIMP_SO = describe(subset(sample_data(ps),Phase=="solid")$Simpson,
+                    type=2)$mean,
+SIMP_SO_SD = describe(subset(sample_data(ps),Phase=="solid")$Simpson,
+                       type=2)$sd,
+SIMP_LI = describe(subset(sample_data(ps),Phase=="liquid")$Simpson,
+                    type=2)$mean,
+SIMP_LI_SD = describe(subset(sample_data(ps),Phase=="liquid")$Simpson,
+                       type=2)$sd,
+SIMP_PHASE_pvalue = wilcox.test(subset(sample_data(ps),Phase=="liquid")$Simpson,
+                                 subset(sample_data(ps),Phase=="solid")$Simpson)$p.value,
+###########################################################################
+#PHASE SHANNON
+SHANN_SO = describe(subset(sample_data(ps),Phase=="solid")$Shannon,
+                    type=2)$mean,
+SHANN_SO_SD = describe(subset(sample_data(ps),Phase=="solid")$Shannon,
+                       type=2)$sd,
+SHANN_LI = describe(subset(sample_data(ps),Phase=="liquid")$Shannon,
+                    type=2)$mean,
+SHANN_LI_SD = describe(subset(sample_data(ps),Phase=="liquid")$Shannon,
+                       type=2)$sd,
+SHANN_PHASE_pvalue = wilcox.test(subset(sample_data(ps),Phase=="liquid")$Shannon,
+                               subset(sample_data(ps),Phase=="solid")$Shannon)$p.value,
+###########################################################################
+#PHASE SIMPSON HFE
+SIMP_SO_HE = describe(subset(sample_data(ps),Phase=="solid" & Treatment=="High feed efficiency")$Simpson,
+                   type=2)$mean,
+SIMP_SO_HE_SD = describe(subset(sample_data(ps),Phase=="solid" & Treatment=="High feed efficiency")$Simpson,
+                      type=2)$sd,
+SIMP_LI_HE = describe(subset(sample_data(ps),Phase=="liquid"& Treatment=="High feed efficiency")$Simpson,
+                   type=2)$mean,
+SIMP_LI_HE_SD = describe(subset(sample_data(ps),Phase=="liquid" & Treatment=="High feed efficiency")$Simpson,
+                      type=2)$sd,
+SIMP_PHASE_HE_pvalue = wilcox.test(subset(sample_data(ps),Phase=="liquid"  & Treatment=="High feed efficiency")$Simpson,
+                                subset(sample_data(ps),Phase=="solid" & Treatment=="High feed efficiency")$Simpson)$p.value,
+###########################################################################
+#PHASE SHANNON HFE
+SHANN_O_HE = describe(subset(sample_data(ps),Phase=="solid" & Treatment=="High feed efficiency")$Shannon,
+                      type=2)$mean,
+SHANN_SO_HE_SD = describe(subset(sample_data(ps),Phase=="solid" & Treatment=="High feed efficiency")$Shannon,
+                         type=2)$sd,
+SHANN_LI_HE = describe(subset(sample_data(ps),Phase=="liquid"& Treatment=="High feed efficiency")$Shannon,
+                      type=2)$mean,
+SHANN_LI_HE_SD = describe(subset(sample_data(ps),Phase=="liquid" & Treatment=="High feed efficiency")$Shannon,
+                         type=2)$sd,
+SHANN_PHASE_HE_pvalue = wilcox.test(subset(sample_data(ps),Phase=="liquid"  & Treatment=="High feed efficiency")$Shannon,
+                                   subset(sample_data(ps),Phase=="solid" & Treatment=="High feed efficiency")$Shannon)$p.value,
+###########################################################################
+#PHASE SIMPSON LFE
+SIMP_SO_LE = describe(subset(sample_data(ps),Phase=="solid" & Treatment=="Low feed efficiency")$Simpson,
+                      type=2)$mean,
+SIMP_SO_LE_SD = describe(subset(sample_data(ps),Phase=="solid" & Treatment=="Low feed efficiency")$Simpson,
+                         type=2)$sd,
+SIMP_LI_LE = describe(subset(sample_data(ps),Phase=="liquid"& Treatment=="Low feed efficiency")$Simpson,
+                      type=2)$mean,
+SIMP_LI_LE_SD = describe(subset(sample_data(ps),Phase=="liquid" & Treatment=="Low feed efficiency")$Simpson,
+                         type=2)$sd,
+SIMP_PHASE_LE_pvalue = wilcox.test(subset(sample_data(ps),Phase=="liquid"  & Treatment=="Low feed efficiency")$Simpson,
+                                   subset(sample_data(ps),Phase=="solid" & Treatment=="Low feed efficiency")$Simpson)$p.value,
+##########################################################################
+#PHASE SHANNON LFE
+SHANN_SO_LE = describe(subset(sample_data(ps),Phase=="solid" & Treatment=="Low feed efficiency")$Shannon,
+                      type=2)$mean,
+SHANN_SO_LE_SD = describe(subset(sample_data(ps),Phase=="solid" & Treatment=="Low feed efficiency")$Shannon,
+                         type=2)$sd,
+SHANN_LI_LE = describe(subset(sample_data(ps),Phase=="liquid"& Treatment=="Low feed efficiency")$Shannon,
+                      type=2)$mean,
+SHANN_LI_LE_SD = describe(subset(sample_data(ps),Phase=="liquid" & Treatment=="Low feed efficiency")$Shannon,
+                         type=2)$sd,
+SHANN_PHASE_LE_pvalue = wilcox.test(subset(sample_data(ps),Phase=="liquid"  & Treatment=="Low feed efficiency")$Shannon,
+                                   subset(sample_data(ps),Phase=="solid" & Treatment=="Low feed efficiency")$Shannon)$p.value,
+###########################################################################
+#COMPARING LIQUID FRACTIONS
+SIMP_LIQs_pvalue = wilcox.test(subset(sample_data(ps),Phase=="liquid"  & Treatment=="Low feed efficiency")$Simpson,
+                                   subset(sample_data(ps),Phase=="liquid" & Treatment=="High feed efficiency")$Simpson)$p.value,
+#####
+SHANN_LIQs_pvalue = wilcox.test(subset(sample_data(ps),Phase=="liquid"  & Treatment=="Low feed efficiency")$Shannon,
+                               subset(sample_data(ps),Phase=="liquid" & Treatment=="High feed efficiency")$Shannon)$p.value,
+
+###########################################################################
+#COMPARING SOLID FRACTIONS
+SIMP_SOLs_pvalue = wilcox.test(subset(sample_data(ps),Phase=="solid"  & Treatment=="Low feed efficiency")$Simpson,
+                               subset(sample_data(ps),Phase=="solid" & Treatment=="High feed efficiency")$Simpson)$p.value,
+#####
+SHANN_SOLs_pvalue = wilcox.test(subset(sample_data(ps),Phase=="solid"  & Treatment=="Low feed efficiency")$Shannon,
+                                subset(sample_data(ps),Phase=="solid" & Treatment=="High feed efficiency")$Shannon)$p.value,
+
+###########################################################################
+###########################################################################
+
+
+
+
+SIMP_EFF_FDR = NA,
+SHANN_EFF_FDR = NA,
+SIMP_PHASE_FDR = NA,
+SHANN_PHASE_FDR = NA,
+SIMP_PHASE_HE_FDR = NA,
+SHANN_PHASE_HE_FDR = NA,
+SIMP_PHASE_LE_FDR = NA,
+SHANN_PHASE_LE_FDR = NA,
+SIMP_LIQs_FDR = NA,
+SHANN_LIQs_FDR = NA,
+SIMP_SOLs_FDR = NA,
+SHANN_SOLs_FDR = NA
 # 
 # SHAN_EFF = wilcox.test(subset(sample_data(ps),Treatment=="High feed efficiency")$Shannon,
 #             subset(sample_data(ps),Treatment=="Low feed efficiency")$Shannon)$p.value,
@@ -221,6 +333,179 @@ SHANN_EFF = wilcox.test(subset(sample_data(ps),Treatment=="High feed efficiency"
 # SHAN_PHASE = wilcox.test(subset(sample_data(ps),Phase=="liquid")$Shannon,
 #             subset(sample_data(ps),Phase=="solid")$Shannon)$p.value
 )
+
+
+wilcox_list_DIV$SIMP_EFF_FDR <- p.adjust(p = c(wilcox_list_DIV$SIMP_EFF_pvalue,
+                                               wilcox_list_DIV$SHANN_EFF_pvalue,
+                                               wilcox_list_DIV$SIMP_PHASE_pvalue,
+                                               wilcox_list_DIV$SHANN_PHASE_pvalue,
+                                               wilcox_list_DIV$SIMP_PHASE_HE_pvalue,
+                                               wilcox_list_DIV$SHANN_PHASE_HE_pvalue,
+                                               wilcox_list_DIV$SIMP_PHASE_LE_pvalue,
+                                               wilcox_list_DIV$SHANN_PHASE_LE_pvalue,                                               
+                                               wilcox_list_DIV$SIMP_LIQs_pvalue,
+                                               wilcox_list_DIV$SHANN_LIQs_pvalue,                                               
+                                               wilcox_list_DIV$SIMP_SOLs_pvalue,
+                                               wilcox_list_DIV$SHANN_SOLs_pvalue       
+), method =  "BH",n = 12)[1]
+
+wilcox_list_DIV$SHANN_EFF_FDR <- p.adjust(p = c(wilcox_list_DIV$SIMP_EFF_pvalue,
+                                                wilcox_list_DIV$SHANN_EFF_pvalue,
+                                                wilcox_list_DIV$SIMP_PHASE_pvalue,
+                                                wilcox_list_DIV$SHANN_PHASE_pvalue,
+                                                wilcox_list_DIV$SIMP_PHASE_HE_pvalue,
+                                                wilcox_list_DIV$SHANN_PHASE_HE_pvalue,
+                                                wilcox_list_DIV$SIMP_PHASE_LE_pvalue,
+                                                wilcox_list_DIV$SHANN_PHASE_LE_pvalue,                                               
+                                                wilcox_list_DIV$SIMP_LIQs_pvalue,
+                                                wilcox_list_DIV$SHANN_LIQs_pvalue,                                               
+                                                wilcox_list_DIV$SIMP_SOLs_pvalue,
+                                                wilcox_list_DIV$SHANN_SOLs_pvalue    
+                                                ), method =  "BH",n = 12)[2]
+                                            
+                                            
+wilcox_list_DIV$SIMP_PHASE_FDR <- p.adjust(p = c(wilcox_list_DIV$SIMP_EFF_pvalue,
+                                                 wilcox_list_DIV$SHANN_EFF_pvalue,
+                                                 wilcox_list_DIV$SIMP_PHASE_pvalue,
+                                                 wilcox_list_DIV$SHANN_PHASE_pvalue,
+                                                 wilcox_list_DIV$SIMP_PHASE_HE_pvalue,
+                                                 wilcox_list_DIV$SHANN_PHASE_HE_pvalue,
+                                                 wilcox_list_DIV$SIMP_PHASE_LE_pvalue,
+                                                 wilcox_list_DIV$SHANN_PHASE_LE_pvalue,                                               
+                                                 wilcox_list_DIV$SIMP_LIQs_pvalue,
+                                                 wilcox_list_DIV$SHANN_LIQs_pvalue,                                               
+                                                 wilcox_list_DIV$SIMP_SOLs_pvalue,
+                                                 wilcox_list_DIV$SHANN_SOLs_pvalue    
+), method =  "BH",n = 12)[3]
+
+wilcox_list_DIV$SHANN_PHASE_FDR <- p.adjust(p = c(wilcox_list_DIV$SIMP_EFF_pvalue,
+                                                  wilcox_list_DIV$SHANN_EFF_pvalue,
+                                                  wilcox_list_DIV$SIMP_PHASE_pvalue,
+                                                  wilcox_list_DIV$SHANN_PHASE_pvalue,
+                                                  wilcox_list_DIV$SIMP_PHASE_HE_pvalue,
+                                                  wilcox_list_DIV$SHANN_PHASE_HE_pvalue,
+                                                  wilcox_list_DIV$SIMP_PHASE_LE_pvalue,
+                                                  wilcox_list_DIV$SHANN_PHASE_LE_pvalue,                                               
+                                                  wilcox_list_DIV$SIMP_LIQs_pvalue,
+                                                  wilcox_list_DIV$SHANN_LIQs_pvalue,                                               
+                                                  wilcox_list_DIV$SIMP_SOLs_pvalue,
+                                                  wilcox_list_DIV$SHANN_SOLs_pvalue    
+), method =  "BH",n = 12)[4]                                            
+                                            
+wilcox_list_DIV$SIMP_PHASE_HE_FDR <- p.adjust(p = c(wilcox_list_DIV$SIMP_EFF_pvalue,
+                                                  wilcox_list_DIV$SHANN_EFF_pvalue,
+                                                  wilcox_list_DIV$SIMP_PHASE_pvalue,
+                                                  wilcox_list_DIV$SHANN_PHASE_pvalue,
+                                                  wilcox_list_DIV$SIMP_PHASE_HE_pvalue,
+                                                  wilcox_list_DIV$SHANN_PHASE_HE_pvalue,
+                                                  wilcox_list_DIV$SIMP_PHASE_LE_pvalue,
+                                                  wilcox_list_DIV$SHANN_PHASE_LE_pvalue,                                               
+                                                  wilcox_list_DIV$SIMP_LIQs_pvalue,
+                                                  wilcox_list_DIV$SHANN_LIQs_pvalue,                                               
+                                                  wilcox_list_DIV$SIMP_SOLs_pvalue,
+                                                  wilcox_list_DIV$SHANN_SOLs_pvalue    
+), method =  "BH",n = 12)[5]      
+                                  
+wilcox_list_DIV$SHANN_PHASE_HE_FDR <- p.adjust(p = c(wilcox_list_DIV$SIMP_EFF_pvalue,
+                                                    wilcox_list_DIV$SHANN_EFF_pvalue,
+                                                    wilcox_list_DIV$SIMP_PHASE_pvalue,
+                                                    wilcox_list_DIV$SHANN_PHASE_pvalue,
+                                                    wilcox_list_DIV$SIMP_PHASE_HE_pvalue,
+                                                    wilcox_list_DIV$SHANN_PHASE_HE_pvalue,
+                                                    wilcox_list_DIV$SIMP_PHASE_LE_pvalue,
+                                                    wilcox_list_DIV$SHANN_PHASE_LE_pvalue,                                               
+                                                    wilcox_list_DIV$SIMP_LIQs_pvalue,
+                                                    wilcox_list_DIV$SHANN_LIQs_pvalue,                                               
+                                                    wilcox_list_DIV$SIMP_SOLs_pvalue,
+                                                    wilcox_list_DIV$SHANN_SOLs_pvalue    
+), method =  "BH",n = 12)[6]      
+
+wilcox_list_DIV$SIMP_PHASE_LE_FDR <- p.adjust(p = c(wilcox_list_DIV$SIMP_EFF_pvalue,
+                                                     wilcox_list_DIV$SHANN_EFF_pvalue,
+                                                     wilcox_list_DIV$SIMP_PHASE_pvalue,
+                                                     wilcox_list_DIV$SHANN_PHASE_pvalue,
+                                                     wilcox_list_DIV$SIMP_PHASE_HE_pvalue,
+                                                     wilcox_list_DIV$SHANN_PHASE_HE_pvalue,
+                                                     wilcox_list_DIV$SIMP_PHASE_LE_pvalue,
+                                                     wilcox_list_DIV$SHANN_PHASE_LE_pvalue,                                               
+                                                     wilcox_list_DIV$SIMP_LIQs_pvalue,
+                                                     wilcox_list_DIV$SHANN_LIQs_pvalue,                                               
+                                                     wilcox_list_DIV$SIMP_SOLs_pvalue,
+                                                     wilcox_list_DIV$SHANN_SOLs_pvalue    
+), method =  "BH",n = 12)[7]      
+
+wilcox_list_DIV$SHANN_PHASE_LE_FDR <- p.adjust(p = c(wilcox_list_DIV$SIMP_EFF_pvalue,
+                                                    wilcox_list_DIV$SHANN_EFF_pvalue,
+                                                    wilcox_list_DIV$SIMP_PHASE_pvalue,
+                                                    wilcox_list_DIV$SHANN_PHASE_pvalue,
+                                                    wilcox_list_DIV$SIMP_PHASE_HE_pvalue,
+                                                    wilcox_list_DIV$SHANN_PHASE_HE_pvalue,
+                                                    wilcox_list_DIV$SIMP_PHASE_LE_pvalue,
+                                                    wilcox_list_DIV$SHANN_PHASE_LE_pvalue,                                               
+                                                    wilcox_list_DIV$SIMP_LIQs_pvalue,
+                                                    wilcox_list_DIV$SHANN_LIQs_pvalue,                                               
+                                                    wilcox_list_DIV$SIMP_SOLs_pvalue,
+                                                    wilcox_list_DIV$SHANN_SOLs_pvalue    
+), method =  "BH",n = 12)[8]      
+
+wilcox_list_DIV$SIMP_LIQs_FDR <- p.adjust(p = c(wilcox_list_DIV$SIMP_EFF_pvalue,
+                                                    wilcox_list_DIV$SHANN_EFF_pvalue,
+                                                    wilcox_list_DIV$SIMP_PHASE_pvalue,
+                                                    wilcox_list_DIV$SHANN_PHASE_pvalue,
+                                                    wilcox_list_DIV$SIMP_PHASE_HE_pvalue,
+                                                    wilcox_list_DIV$SHANN_PHASE_HE_pvalue,
+                                                    wilcox_list_DIV$SIMP_PHASE_LE_pvalue,
+                                                    wilcox_list_DIV$SHANN_PHASE_LE_pvalue,                                               
+                                                    wilcox_list_DIV$SIMP_LIQs_pvalue,
+                                                    wilcox_list_DIV$SHANN_LIQs_pvalue,                                               
+                                                    wilcox_list_DIV$SIMP_SOLs_pvalue,
+                                                    wilcox_list_DIV$SHANN_SOLs_pvalue    
+), method =  "BH",n = 12)[9]      
+
+wilcox_list_DIV$SHANN_LIQs_FDR <- p.adjust(p = c(wilcox_list_DIV$SIMP_EFF_pvalue,
+                                                     wilcox_list_DIV$SHANN_EFF_pvalue,
+                                                     wilcox_list_DIV$SIMP_PHASE_pvalue,
+                                                     wilcox_list_DIV$SHANN_PHASE_pvalue,
+                                                     wilcox_list_DIV$SIMP_PHASE_HE_pvalue,
+                                                     wilcox_list_DIV$SHANN_PHASE_HE_pvalue,
+                                                     wilcox_list_DIV$SIMP_PHASE_LE_pvalue,
+                                                     wilcox_list_DIV$SHANN_PHASE_LE_pvalue,                                               
+                                                     wilcox_list_DIV$SIMP_LIQs_pvalue,
+                                                     wilcox_list_DIV$SHANN_LIQs_pvalue,                                               
+                                                     wilcox_list_DIV$SIMP_SOLs_pvalue,
+                                                     wilcox_list_DIV$SHANN_SOLs_pvalue    
+), method =  "BH",n = 12)[10]      
+
+wilcox_list_DIV$SIMP_SOLs_FDR <- p.adjust(p = c(wilcox_list_DIV$SIMP_EFF_pvalue,
+                                                wilcox_list_DIV$SHANN_EFF_pvalue,
+                                                wilcox_list_DIV$SIMP_PHASE_pvalue,
+                                                wilcox_list_DIV$SHANN_PHASE_pvalue,
+                                                wilcox_list_DIV$SIMP_PHASE_HE_pvalue,
+                                                wilcox_list_DIV$SHANN_PHASE_HE_pvalue,
+                                                wilcox_list_DIV$SIMP_PHASE_LE_pvalue,
+                                                wilcox_list_DIV$SHANN_PHASE_LE_pvalue,                                               
+                                                wilcox_list_DIV$SIMP_LIQs_pvalue,
+                                                wilcox_list_DIV$SHANN_LIQs_pvalue,                                               
+                                                wilcox_list_DIV$SIMP_SOLs_pvalue,
+                                                wilcox_list_DIV$SHANN_SOLs_pvalue    
+), method =  "BH",n = 12)[11]      
+
+wilcox_list_DIV$SHANN_SOLs_FDR <- p.adjust(p = c(wilcox_list_DIV$SIMP_EFF_pvalue,
+                                                 wilcox_list_DIV$SHANN_EFF_pvalue,
+                                                 wilcox_list_DIV$SIMP_PHASE_pvalue,
+                                                 wilcox_list_DIV$SHANN_PHASE_pvalue,
+                                                 wilcox_list_DIV$SIMP_PHASE_HE_pvalue,
+                                                 wilcox_list_DIV$SHANN_PHASE_HE_pvalue,
+                                                 wilcox_list_DIV$SIMP_PHASE_LE_pvalue,
+                                                 wilcox_list_DIV$SHANN_PHASE_LE_pvalue,                                               
+                                                 wilcox_list_DIV$SIMP_LIQs_pvalue,
+                                                 wilcox_list_DIV$SHANN_LIQs_pvalue,                                               
+                                                 wilcox_list_DIV$SIMP_SOLs_pvalue,
+                                                 wilcox_list_DIV$SHANN_SOLs_pvalue    
+), method =  "BH",n = 12)[12]      
+
+
+write.csv(wilcox_list_DIV,paste0(out_dir,"/","csv/","Wilcoxon_alpha.csv"),quote = F,row.names = F)
 
 # wilcox_list_DIV[2,] <- NA
 # 

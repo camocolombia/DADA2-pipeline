@@ -2,7 +2,7 @@
 ##Chrystian C. Sosa 2018 Chapter 1               #
 ##2018-06-29                                     #
 ##NUIG - Teagasc Athenry                         #
-##ASSIGNING OTUs                                 #
+##COWPI OUTPUT TO PHYLOSEQ                       #
 ##################################################
 
 ##################################################
@@ -79,11 +79,17 @@ ps <- readRDS(paste0(csv_dir,"/","Phyloseq_object_filter",".RDS"))
 ps3 <-  readRDS(paste0(csv_dir,"/","Phyloseq_object_trans",".RDS"))
 dat_ps <- meta(ps)
 dat_ps$Subject <- as.character(dat_ps$Subject)
-CowPI_file <- read.csv(paste0(CowPI_dir,"/","cowPI2.csv"),header = T,sep = "|")
+CowPI_file <- read.csv(paste0(CowPI_dir,"/","cowPI2.csv"),header = T,sep = ",")
 CowPI_file$samples <- as.character(CowPI_file$samples)
 CowPI_file <- CowPI_file[,which(colSums(CowPI_file[,-1])>0)]
-CowPI_file2 <- merge(dat_ps,CowPI_file,by.x="Subject",by.y="samples")
+
+colnames(CowPI_file)[1] <- "Subject"
+CowPI_file2 <- dplyr::left_join(dat_ps,CowPI_file,"Subject")
 CowPI_file2a <-CowPI_file2
+
+#CowPI_file2 <- merge(dat_ps,CowPI_file,by.x="Subject",by.y="samples")
+#CowPI_file2a <-CowPI_file2
+
 saveRDS(CowPI_file2a,paste0(csv_dir,"/","CowPI_file2a",".RDS"))
 
 # #CowPI_file2 <- cbind(CowPI_file2[,c(1:11)],log10(CowPI_file2[,-c(1:11)]))

@@ -3,7 +3,7 @@
 ##Chrystian C. Sosa 2018 Chapter 1               #
 ##2018-06-29                                     #
 ##NUIG - Teagasc Athenry                         #
-##ASSIGNING OTUs                                 #
+##FDR using Xiao et al., 2017                    #
 ##################################################
 
 ##################################################
@@ -75,8 +75,13 @@ CowPI_dir <- paste0(dat_dir,"/","CowPI"); if(!file.exists(CowPI_dir)){dir.create
 # calculate geometric means prior to estimate size factors
 
 gm_mean = function(x, na.rm=TRUE){
-  exp(sum(log(x[x > 0]), na.rm=na.rm) / length(x))
-}
+  if(sum(x,na.rm = na.rm)!=0){
+  z <-  exp(sum(log(x[x > 0]), na.rm=na.rm) / length(x))
+    } else {
+   z <- 0
+     }
+  return(z)
+  }
 
 
 #Antilog
@@ -100,7 +105,10 @@ perm.func <- function (X, Y) {
   return(list(X=X, Y=sample(Y)))
 }
 
-
+#Standar error about mean
+sem_function <- function(x){
+sd(x)/sqrt(length(x))
+}
 #T.TEST
 #   test.func <- function (X, Y) {
 #     obj <- apply(X, 1, function(x) {
@@ -131,7 +139,7 @@ test.func <- function (X, Y) {
 ps <- readRDS(paste0(csv_dir,"/","Phyloseq_object_filter",".RDS"))
 ps@sam_data$Treatment <- factor(ps@sam_data$Treatment,levels = c("High feed efficiency","Low feed efficiency"))
 ps3 <-  readRDS(paste0(csv_dir,"/","Phyloseq_object_trans",".RDS"))
-
+gc()
 write.table(as.data.frame(t(ps@otu_table)),paste0(CowPI_dir,"/","otu_table.tab"),sep = "\t",row.names = T,quote = F)
 
 ###DAPC
@@ -187,7 +195,7 @@ ps_object3 <- readRDS(paste0(csv_dir,"/","Phyloseq_taxa_list_melt",".RDS"))
 
 ###Benjamini- Hochberg
 
-
+if(!file.exists(paste0(out_dir,"/","csv/","FDR_list.RDS"))){
 #http://rstudio-pubs-static.s3.amazonaws.com/13988_bb11d85b79b2436280de434988558140.html
 #Final count oer group and sample
 HE = rowSums(as.data.frame(t(otu_table(subset_samples(ps, Treatment=="High feed efficiency")))))
@@ -215,12 +223,34 @@ LI_P_3 = rowSums(as.data.frame(t(otu_table(subset_samples(ps3, Phase=="liquid"))
 SO_A_P_3 = as.data.frame(t(otu_table(subset_samples(ps3, Phase=="solid")))) 
 LI_A_P_3 = as.data.frame(t(otu_table(subset_samples(ps3, Phase=="liquid"))))
 
-
+###SUBSET PER TREATMENT
+SO_OTU <-otu_table(subset_samples(ps, Phase=="solid"))
+LI_OTU <-otu_table(subset_samples(ps, Phase=="liquid"))
+HE_OTU <-otu_table(subset_samples(ps, Treatment=="High feed efficiency"))
+LE_OTU <-otu_table(subset_samples(ps, Treatment=="Low feed efficiency"))
 
 df <- data.frame(seqId=names(HE),
                  ###########################################
                  ###total counts
-                 a.greaterthan.b_T = HE > LE,
+                 animal_per_sample=NA,
+                 animal_per_HE=NA,
+                 animal_per_LE=NA,
+                 count_per_sample=NA,
+                 count_per_HE=NA,
+                 count_per_LE=NA,
+                 count_per_SO=NA,
+                 count_per_LI=NA,
+                 sample_count= rowSums(t(otu_table(ps))>0),
+                 sample_count_HE = rowSums(as.data.frame(t(otu_table(subset_samples(ps,Treatment=="High feed efficiency"))))>0),
+                 sample_count_LE = rowSums(as.data.frame(t(otu_table(subset_samples(ps,Treatment=="Low feed efficiency"))))>0),
+                 sample_count_LI = rowSums(as.data.frame(t(otu_table(subset_samples(ps,Phase=="liquid"))))>0),
+                 sample_count_SO =rowSums(as.data.frame(t(otu_table(subset_samples(ps,Phase=="solid"))))>0), 
+                 sample_count_HE_SO = rowSums(as.data.frame(t(otu_table(subset_samples(ps, Phase=="solid" & Treatment=="High feed efficiency"))))>0),
+                 sample_count_HE_LI = rowSums(as.data.frame(t(otu_table(subset_samples(ps, Phase=="liquid" & Treatment=="High feed efficiency"))))>0),
+                 sample_count_LE_SO = rowSums(as.data.frame(t(otu_table(subset_samples(ps, Phase=="solid" & Treatment=="Low feed efficiency"))))>0),
+                 sample_count_LE_LI = rowSums(as.data.frame(t(otu_table(subset_samples(ps, Phase=="liquid" & Treatment=="Low feed efficiency"))))>0),  
+                 
+                 #a.greaterthan.b_T = HE > LE,
                  SH =rowSums(as.data.frame(t(otu_table(subset_samples(ps, Phase=="solid" & Treatment=="High feed efficiency"))))),
                  SL =rowSums(as.data.frame(t(otu_table(subset_samples(ps, Phase=="solid" & Treatment=="Low feed efficiency"))))),
                  LH =rowSums(as.data.frame(t(otu_table(subset_samples(ps, Phase=="liquid" & Treatment=="High feed efficiency"))))),
@@ -233,27 +263,35 @@ df <- data.frame(seqId=names(HE),
                  rel_total = (((HE+LE)/(sum(HE,LE))*100)),
                  #HE_gmean = as.numeric(lapply(1:nrow(HE_A),function(i){x2 <- median(as.numeric((HE_A/sum(HE_A,LE_A))[i,]));return(x2)})),
                  #LE_gmean = as.numeric(lapply(1:nrow(LE_A),function(i){x2 <- median(as.numeric((LE_A/sum(HE_A,LE_A))[i,]));return(x2)})),
-                 #HE_gmean = as.numeric(lapply(1:nrow(HE_A),function(i){x2 <- mean(as.numeric((HE_A/sum(HE_A,LE_A))[i,]));return(x2)})),
-                 #LE_gmean = as.numeric(lapply(1:nrow(LE_A),function(i){x2 <- mean(as.numeric((LE_A/sum(HE_A,LE_A))[i,]));return(x2)})),
-                  HE_gmean = as.numeric(lapply(1:nrow(HE_A),function(i){x2 <- gm_mean((HE_A/sum(HE_A,LE_A))[i,]);return(x2)})),
-                  LE_gmean = as.numeric(lapply(1:nrow(LE_A),function(i){x2 <- gm_mean((LE_A/sum(HE_A,LE_A))[i,]);return(x2)})),
+                 HE_gmean = as.numeric(lapply(1:nrow(HE_A),function(i){x2 <- mean(as.numeric((HE_A/sum(HE_A,LE_A))[i,]));return(x2)})),
+                 LE_gmean = as.numeric(lapply(1:nrow(LE_A),function(i){x2 <- mean(as.numeric((LE_A/sum(HE_A,LE_A))[i,]));return(x2)})),
+                 HE_SD_gmean = as.numeric(lapply(1:nrow(HE_A),function(i){x2 <- sd(as.numeric((HE_A/sum(HE_A,LE_A))[i,]));return(x2)})),
+                 LE_SD_gmean = as.numeric(lapply(1:nrow(LE_A),function(i){x2 <- sd(as.numeric((LE_A/sum(HE_A,LE_A))[i,]));return(x2)})),
+                 
+                 
+                 
+                 # HE_gmean = as.numeric(lapply(1:nrow(HE_A),function(i){x2 <- gm_mean((HE_A/sum(HE_A,LE_A))[i,],na.rm = T);return(x2)})),
+                 #LE_gmean = as.numeric(lapply(1:nrow(LE_A),function(i){x2 <- gm_mean((LE_A/sum(HE_A,LE_A))[i,],na.rm = T);return(x2)})),
                  
                  # HE_L = NA,
                  # LE_L  =NA,
                  change_Treat =NA,
                  pvalue_T = NA,
                  p.adj_T = NA,
-                 a.greaterthan.b_Ph = SO_P > LI_P,
+                 #a.greaterthan.b_Ph = SO_P > LI_P,
                  S_Ph = SO_P,
                  L_Ph = LI_P,
                  count_Ph = SO_P + LI_P,
                  rel_SO = SO_P/(sum(SO_P,LI_P)),
                  rel_LI = LI_P/(sum(SO_P,LI_P)),
                  rel_total_Ph = (((SO_P+LI_P)/(sum(SO_P,LI_P))*100)),
-                  SO_gmean = as.numeric(lapply(1:nrow(SO_A_P),function(i){x2 <- gm_mean((SO_A_P/sum(SO_A_P,LI_A_P))[i,]);return(x2)})),
-                  LI_gmean = as.numeric(lapply(1:nrow(LI_A_P),function(i){x2 <- gm_mean((LI_A_P/sum(SO_A_P,LI_A_P))[i,]);return(x2)})),
-                 #SO_gmean = as.numeric(lapply(1:nrow(SO_A_P),function(i){x2 <- mean(as.numeric((SO_A_P/sum(SO_A_P,LI_A_P))[i,]));return(x2)})),
-                 #LI_gmean = as.numeric(lapply(1:nrow(LI_A_P),function(i){x2 <- mean(as.numeric((LI_A_P/sum(SO_A_P,LI_A_P))[i,]));return(x2)})),
+                 #SO_gmean = as.numeric(lapply(1:nrow(SO_A_P),function(i){x2 <- gm_mean((SO_A_P/sum(SO_A_P,LI_A_P))[i,],na.rm = T);return(x2)})),
+                 #LI_gmean = as.numeric(lapply(1:nrow(LI_A_P),function(i){x2 <- gm_mean((LI_A_P/sum(SO_A_P,LI_A_P))[i,],na.rm = T);return(x2)})),
+                 SO_gmean = as.numeric(lapply(1:nrow(SO_A_P),function(i){x2 <- mean(as.numeric((SO_A_P/sum(SO_A_P,LI_A_P))[i,]));return(x2)})),
+                 LI_gmean = as.numeric(lapply(1:nrow(LI_A_P),function(i){x2 <- mean(as.numeric((LI_A_P/sum(SO_A_P,LI_A_P))[i,]));return(x2)})),
+                 SO_SD_gmean = as.numeric(lapply(1:nrow(SO_A_P),function(i){x2 <- sd(as.numeric((SO_A_P/sum(SO_A_P,LI_A_P))[i,]));return(x2)})),
+                 LI_SD_gmean = as.numeric(lapply(1:nrow(LI_A_P),function(i){x2 <- sd(as.numeric((LI_A_P/sum(SO_A_P,LI_A_P))[i,]));return(x2)})),
+                 
                  #SO_gmean = as.numeric(lapply(1:nrow(SO_A_P),function(i){x2 <- median(as.numeric((SO_A_P/sum(SO_A_P,LI_A_P))[i,]));return(x2)})),
                  #LI_gmean = as.numeric(lapply(1:nrow(LI_A_P),function(i){x2 <- median(as.numeric((LI_A_P/sum(SO_A_P,LI_A_P))[i,]));return(x2)})),
                  
@@ -264,7 +302,7 @@ df <- data.frame(seqId=names(HE),
                  p.adj_Phase = NA,
                  ###########################################
                  ###transformed counts
-                 a.greaterthan.b_T3 = HE_3 > LE_3,
+                 #a.greaterthan.b_T3 = HE_3 > LE_3,
                  SH3 =rowSums(as.data.frame(t(otu_table(subset_samples(ps3, Phase=="solid" & Treatment=="High feed efficiency"))))),
                  SL3 =rowSums(as.data.frame(t(otu_table(subset_samples(ps3, Phase=="solid" & Treatment=="Low feed efficiency"))))),
                  LH3 =rowSums(as.data.frame(t(otu_table(subset_samples(ps3, Phase=="liquid" & Treatment=="High feed efficiency"))))),
@@ -273,23 +311,49 @@ df <- data.frame(seqId=names(HE),
                  LE3 = LE_3,
                  count_T3 = HE_3 + LE_3,
                 rel_total3 = (((HE_3+LE_3)/(sum(HE_3,LE_3))*100)),
-                HE_gmean3 = as.numeric(lapply(1:nrow(HE_A_3),function(i){x2 <- gm_mean(HE_A_3[i,]);return(x2)})),
-                LE_gmean3 = as.numeric(lapply(1:nrow(LE_A_3),function(i){x2 <- gm_mean(LE_A_3[i,]);return(x2)})),
+                #HE_gmean3 = as.numeric(lapply(1:nrow(HE_A_3),function(i){x2 <- gm_mean(HE_A_3[i,],na.rm = T);return(x2)})),
+                #LE_gmean3 = as.numeric(lapply(1:nrow(LE_A_3),function(i){x2 <- gm_mean(LE_A_3[i,],na.rm = T);return(x2)})),
+                HE_gmean3 = as.numeric(lapply(1:nrow(HE_A_3),function(i){x2 <- mean(as.numeric(HE_A_3[i,]),na.rm = T);return(x2)})),
+                LE_gmean3 = as.numeric(lapply(1:nrow(LE_A_3),function(i){x2 <- mean(as.numeric(LE_A_3[i,]),na.rm = T);return(x2)})),
+                HE_SD_gmean3 = as.numeric(lapply(1:nrow(HE_A_3),function(i){x2 <- sd(as.numeric(HE_A_3[i,]),na.rm = T);return(x2)})),
+                LE_SD_gmean3 = as.numeric(lapply(1:nrow(LE_A_3),function(i){x2 <- sd(as.numeric(LE_A_3[i,]),na.rm = T);return(x2)})),
+                
                 
                 change_Treat3 =NA,
                  pvalue_T3 = NA,
                  p.adj_T3 = NA,
-                 a.greaterthan.b_Ph3 = SO_P_3 > LI_P_3,
+                 #a.greaterthan.b_Ph3 = SO_P_3 > LI_P_3,
                  S_Ph3 = SO_P_3,
                  L_Ph3 = LI_P_3,
                  count_Ph3 = SO_P_3 + LI_P_3,
                  rel_total_Ph3 = (((SO_P_3+LI_P_3)/(sum(SO_P_3,LI_P_3))*100)),
-                SO_gmean3 = as.numeric(lapply(1:nrow(SO_A_P_3),function(i){x2 <- gm_mean(SO_A_P_3[i,]);return(x2)})),
-                LI_gmean3 = as.numeric(lapply(1:nrow(LI_A_P_3),function(i){x2 <- gm_mean(LI_A_P_3[i,]);return(x2)})),
+                # SO_gmean3 = as.numeric(lapply(1:nrow(SO_A_P_3),function(i){x2 <- gm_mean(SO_A_P_3[i,],na.rm = T);return(x2)})),
+                # LI_gmean3 = as.numeric(lapply(1:nrow(LI_A_P_3),function(i){x2 <- gm_mean(LI_A_P_3[i,],na.rm = T);return(x2)})),
+                 SO_gmean3 = as.numeric(lapply(1:nrow(SO_A_P_3),function(i){x2 <- mean(as.numeric(SO_A_P_3[i,]),na.rm = T);return(x2)})),
+                 LI_gmean3 = as.numeric(lapply(1:nrow(LI_A_P_3),function(i){x2 <- mean(as.numeric(LI_A_P_3[i,]),na.rm = T);return(x2)})),
+                SO_SD_gmean3 = as.numeric(lapply(1:nrow(SO_A_P_3),function(i){x2 <- sd(as.numeric(SO_A_P_3[i,]),na.rm = T);return(x2)})),
+                LI_SD_gmean3 = as.numeric(lapply(1:nrow(LI_A_P_3),function(i){x2 <- sd(as.numeric(LI_A_P_3[i,]),na.rm = T);return(x2)})),
                 
                 change_Phase3 =NA,
                  pvalue_Phase3 = NA,
-                 p.adj_Phase3 = NA
+                 p.adj_Phase3 = NA,
+                
+                rel_ch3_FE = NA,
+                rel_ch3_Phase = NA,
+                # rel_ch3_HE_PHASE = NA,
+                # rel_ch3_LE_PHASE = NA,
+                # rel_ch3_LIQUID= NA,
+                # rel_ch3_SOLID = NA,
+                
+                status3_FE = NA,
+                status3_Phase = NA
+                # status3_HE_PHASE = NA,
+                # status3_LE_PHASE = NA,
+                # status3_LIQUID= NA,
+                # status3_SOLID = NA
+                
+                
+                
                 
 )
 # 
@@ -301,41 +365,187 @@ df <- data.frame(seqId=names(HE),
 #df$change_Treat <- log2(df$HE_gmean/df$LE_gmean); df$change_Phase <- log2(df$SO_gmean/df$LI_gmean);
 #########################################
 #Calculating log2 fold change
-df$change_Treat <- log2((df$HE_gmean/df$LE_gmean)); df$change_Phase <- log2((df$SO_gmean/df$LI_gmean));
-df$change_Treat3 <- log2((df$HE_gmean3/df$LE_gmean3)); df$change_Phase3 <- log2((df$SO_gmean3/df$LI_gmean3));
+
+# df$change_Treat <- log2((df$HE_gmean/df$LE_gmean)); df$change_Phase <- log2((df$SO_gmean/df$LI_gmean));
+# df$change_Treat3 <- log2((df$HE_gmean3/df$LE_gmean3)); df$change_Phase3 <- log2((df$SO_gmean3/df$LI_gmean3));
+
+
+############counts of animals
+val_dat <- sample_data(ps)
+animalsID <- unique(sample_data(ps)$sampleID)
+
+#for(i in 1:nrow(df)){
+  
+  animals_count <- list()
+  animals_HE_count <- list()  
+  animals_LE_count <- list()
+  
+    for(k in 1:length(animalsID)){
+  cat(k,"\n")
+
+    
+animals_count[[k]] <- suppressMessages(rowSums(as.data.frame(t(otu_table(subset_samples(ps,sampleID==animalsID[[k]]))))>0))
+animals_count[[k]][which(animals_count[[k]]>0)]<- 1
+
+
+if(as.character(unique(val_dat[which(val_dat$sampleID==animalsID[[k]]),]$Treatment))== "High feed efficiency"){
+  animals_HE_count[[k]] <- suppressMessages(rowSums(as.data.frame(t(otu_table(subset_samples(ps,sampleID==animalsID[[k]] &
+  Treatment=="High feed efficiency"))))>0))
+  animals_HE_count[[k]][which(animals_HE_count[[k]]>0)]<- 1
+  
+  animals_LE_count[[k]] <- animals_count[[k]]
+  animals_LE_count[[k]][which(animals_count[[k]]>0)]<- 0
+  
+  
+} else if(as.character(unique(val_dat[which(val_dat$sampleID==animalsID[[k]]),]$Treatment))== "Low feed efficiency"){
+  animals_HE_count[[k]] <- animals_count[[k]]
+  animals_HE_count[[k]][which(animals_HE_count[[k]]>0)]<- 0
+  animals_LE_count[[k]] <- suppressMessages(rowSums(as.data.frame(t(otu_table(subset_samples(ps,sampleID==animalsID[[k]] &
+  Treatment=="Low feed efficiency"))))>0))
+  animals_LE_count[[k]][which(animals_LE_count[[k]]>0)]<- 1
+}                                                                            
+#       animal_per_sample=NA
+# animal_per_HE=NA
+# animal_per_LE=NA
+        };rm(k)
+
+#    };rm(i)
+  
+  
+  
+  df$animal_per_sample <- rowSums(do.call(cbind,animals_count))
+  df$animal_per_HE <- rowSums(do.call(cbind,animals_HE_count))
+  df$animal_per_LE <- rowSums(do.call(cbind,animals_LE_count))
+
+  
+for(i in 1:nrow(df)){
+cat(i,"\n")
+    df$count_per_sample[i] <-sum(otu_table(ps)[,i]>0)
+  df$count_per_HE[i] <-sum(HE_OTU[,i]>0)
+  df$count_per_LE[i] <-sum(LE_OTU[,i]>0)
+  df$count_per_SO[i] <-sum(SO_OTU[,i]>0)
+  df$count_per_LI[i] <-sum(LI_OTU[,i]>0)
+  
+  };rm(i)
+
+log2HE_gmean <- log2(df$HE_gmean); log2LE_gmean <- log2(df$LE_gmean);
+log2HE_gmean[which(log2HE_gmean==-Inf )]  <-0; log2LE_gmean[which(log2LE_gmean==-Inf )]  <-0;
+
+log2HE_gmean3 <- log2(df$HE_gmean3); log2LE_gmean3 <- log2(df$LE_gmean3);
+log2HE_gmean3[which(log2HE_gmean3==-Inf )]  <-0; log2LE_gmean3[which(log2LE_gmean3==-Inf )]  <-0;
+
+log2SO_gmean <- log2(df$SO_gmean); log2LI_gmean <- log2(df$LI_gmean);
+log2SO_gmean[which(log2SO_gmean==-Inf )]  <-0; log2LI_gmean[which(log2LI_gmean==-Inf )]  <-0;
+
+log2SO_gmean3 <- log2(df$SO_gmean3); log2LI_gmean3 <- log2(df$LI_gmean3);
+log2SO_gmean3[which(log2SO_gmean3==-Inf )]  <-0; log2LI_gmean3[which(log2LI_gmean3==-Inf )]  <-0;
+
+df$change_Treat <-log2HE_gmean - log2LE_gmean; df$change_Phase <-log2SO_gmean3 - log2LI_gmean3;
+df$change_Treat3 <-log2HE_gmean3 - log2LE_gmean3; df$change_Phase3 <-log2SO_gmean3 - log2LI_gmean3;
+
 
 for(i in 1:nrow(df)){
-  if(is.infinite(df$change_Treat[i])){
-    if(df$HE[i]>0){
-      df$change_Treat[i] <- df$HE
-    } else { df$change_Treat[i] <- -(df$LE)}
-  } else {df$change_Treat[i] <- df$change_Treat[i] }
+  if(df$LE_gmean[i]==0){
+    df$change_Treat[i] <-  abs(df$change_Treat[i])
+  } else if(df$HE_gmean[i]==0) {
+    df$change_Treat[i] <-  - abs(df$change_Treat[i])
+    }else {
+    df$change_Treat[i] <- df$change_Treat[i]
+  }
+
 };rm(i)
 
 for(i in 1:nrow(df)){
-  if(is.infinite(df$change_Phase[i])){
-    if(df$S_Ph[i]>0){
-      df$change_Phase[i] <- df$S_Ph
-    } else { df$change_Phase[i] <- -(df$L_Ph)}
-  } else {df$change_Phase[i] <- df$change_Phase[i] }
+  if(df$LI_gmean[i]==0){
+    df$change_Phase[i] <-  abs(df$change_Phase[i])
+  } else if(df$SO_gmean[i]==0) {
+    df$change_Phase[i] <- abs(df$change_Phase[i])
+  }else {
+    df$change_Phase[i] <- df$change_Phase[i]
+  }
+};rm(i)
+#####################
+for(i in 1:nrow(df)){
+  if(df$LE_gmean3[i]==0){
+    df$change_Treat3[i] <-  abs(df$change_Treat3[i])
+  } else if(df$HE_gmean3[i]==0) {
+    df$change_Treat3[i] <- - abs(df$change_Treat3[i])
+  }else {
+    df$change_Treat3[i] <- df$change_Treat3[i]
+  }
 };rm(i)
 
-##prop count
 for(i in 1:nrow(df)){
-  if(is.infinite(df$change_Treat3[i])){
-    if(df$HE[i]>0){
-      df$change_Treat3[i] <- df$HE3
-    } else { df$change_Treat3[i] <- -(df$LE3)}
-  } else {df$change_Treat3[i] <- df$change_Treat3[i] }
+  if(df$LI_gmean3[i]==0){
+    df$change_Phase3[i] <-  abs(df$change_Phase3[i])
+  } else if(df$SO_gmean3[i]==0) {
+    df$change_Phase3[i] <- - abs(df$change_Phase3[i])
+  }else {
+    df$change_Phase3[i] <- df$change_Phase3[i]
+  }
 };rm(i)
 
-for(i in 1:nrow(df)){
-  if(is.infinite(df$change_Phase3[i])){
-    if(df$S_Ph3[i]>0){
-      df$change_Phase3[i] <- df$S_Ph3
-    } else { df$change_Phase3[i] <- -(df$L_Ph3)}
-  } else {df$change_Phase3[i] <- df$change_Phase3[i] }
-};rm(i)
+###RELATIVE CHANGE
+df$rel_ch3_FE = (df$HE_gmean3 - df$LE_gmean3)/df$HE_gmean3
+df$rel_ch3_Phase = (df$LI_gmean3 - df$SO_gmean3)/df$LI_gmean3
+
+df$status3_FE = df$HE_gmean3 > df$LE_gmean3
+df$status3_Phase = df$LI_gmean3 > df$SO_gmean3
+
+
+
+
+####
+for(j in 1:nrow(df)){
+  cat(j,"\n")
+  #cat(j,"\n")
+  df$status3_FE[[j]] = if(df$status3_FE[[j]]==T){df$status3_FE[[j]]="HE"}else if(df$HE_gmean3 == df$LE_gmean3){
+    df$status3_FE[[j]]="EQUAL"} else {df$status3_FE[[j]]="LE"}
+  
+  df$status3_Phase[[j]] = if(df$status3_Phase[[j]]==T){df$status3_Phase[[j]]="LI"} else if( df$LI_gmean3 == df$SO_gmean3){
+    df$status3_Phase[[j]]="EQUAL"} else {df$status3_Phase[[j]]="SO"}
+  
+ 
+};rm(j)
+
+#####################3
+# 
+# status3_FE = NA,
+# status3_Phase = NA
+
+# for(i in 1:nrow(df)){
+#   if(is.infinite(df$change_Treat[i]) | is.na(df$change_Treat[i])){
+#     if(df$HE[i]>0){
+#       df$change_Treat[i] <- log2(df$HE[i])
+#     } else { 
+#          df$change_Treat[i] <- -(abs(log2(df$LE[i])))}
+#   } else {df$change_Treat[i] <- df$change_Treat[i] }
+# };rm(i)
+# 
+# for(i in 1:nrow(df)){
+#   if(is.infinite(df$change_Phase[i]) | is.na(df$change_Treat[i])){
+#     if(df$S_Ph[i]>0){
+#       df$change_Phase[i] <- log2(df$S_Ph[i])
+#     } else { df$change_Phase[i] <- - abs(log2(df$L_Ph[i]))}
+#   } else {df$change_Phase[i] <- df$change_Phase[i] }
+# };rm(i)
+# 
+# ##prop count
+# for(i in 1:nrow(df)){
+#   if(is.infinite(df$change_Treat3[i]) | is.na(df$change_Treat3[i])){
+#     if(df$HE3[i]>0){
+#       df$change_Treat3[i] <- log2(df$HE3[i])
+#     } else { df$change_Treat3[i] <- - abs(log2(df$LE3[i]))}
+#   } else {df$change_Treat3[i] <- df$change_Treat3[i] }
+# };rm(i)
+# 
+# for(i in 1:nrow(df)){
+#   if(is.infinite(df$change_Phase3[i]) | is.na(df$change_Phase3[i])){
+#     if(df$S_Ph3[i]>0){
+#       df$change_Phase3[i] <- log2(df$S_Ph3[i])
+#     } else { df$change_Phase3[i] <- - abs(log2(df$L_Ph3[i]))}
+#   } else {df$change_Phase3[i] <- df$change_Phase3[i]}
+# };rm(i)
 #############################
 #Calculating Wilcoxon per ASV
 for(i in 1:nrow(df)){ cat(i,"\n")
@@ -384,10 +594,15 @@ df$p.adj_Phase <- p.adjust(p = df$pvalue_Phase, method =  "BH",n = length(df$pva
 #prop
 df$p.adj_T3 <- p.adjust(p = df$pvalue_T3, method =  "BH",n = length(df$pvalue_T3))
 df$p.adj_Phase3 <- p.adjust(p = df$pvalue_T, method =  "BH",n = length(df$pvalue_Phase3))
-df <- df[complete.cases(df),]
 
-df <- merge(df,ps@tax_table,by="row.names")
-
+#df <- df[complete.cases(df),]
+tax_table_df <- as.data.frame(ps@tax_table)
+tax_table_df$seqId <- NA;
+tax_table_df$seqId <- as.character(row.names(tax_table_df))
+df$seqId <- as.character(df$seqId)
+df <- dplyr::full_join(df,tax_table_df,by="seqId")
+#df <- merge(df,ps@tax_table,by="row.names",all=F,sort=F)
+df_complete <- df
 df_log2fold <- df
 df_log2fold <- df_log2fold[which(df_log2fold$change_Treat3 !=0),]
 #df_log2fold <- df_log2fold[which(df_log2fold$p.adj_T3 <= 0.05),]
@@ -480,7 +695,12 @@ df_pvalues <- as.data.frame(t(df_pvalues))
 df_pvalues$sig <- NA;
 df_pvalues$sig[which(df_pvalues[,2] <= 0.05)] <-"**"; df_pvalues$sig[which(df_pvalues[,2] > 0.05)] <-"-"; 
 colnames(df_pvalues) <- c("p.value","p.adj","sig")
-write.csv(df_pvalues,paste0(csv_dir,"/","wilcoxon_pvalues_phase.csv"),row.names = F,quote = F)
+write.csv(df_pvalues,paste0(csv_dir,"/","wilcoxon_pvalues.csv"),row.names = F,quote = F)
+write.csv(df_complete,paste0(csv_dir,"/","df_logchange.csv"),row.names = F,quote = F)
+write.csv(df_log2fold,paste0(csv_dir,"/","df_logchange_no0.csv"),row.names = F,quote = F)
+
+
+#sum(comp_list2$value)
 ########################################
 #Log2foldchange fixed per change in HE vs LE plot
 df_p <- df
@@ -547,46 +767,73 @@ BH.p.adj <- p.adjust(tree.fdr.obj$p.unadj, 'fdr')
 # Performance measure: compare TreeFDR and BH
 tree.p.adj <- tree.fdr.obj$p.adj
 BH.p.adj <- p.adjust(tree.fdr.obj$p.unadj, 'fdr')
-names(tree.p.adj) <- names(tree.fdr.obj$p.unadj)
-names(BH.p.adj) <- names(tree.fdr.obj$p.unadj)
+# names(tree.p.adj) <- names(tree.fdr.obj$p.unadj)
+# names(BH.p.adj) <- names(tree.fdr.obj$p.unadj)
 X <- t(ps3@otu_table)
 X  <- X[,1]
-X <- as.data.frame(merge(X,tree.p.adj,"row.names"))
+
+#X <- as.data.frame(merge(X,tree.p.adj,"row.names"))
+X <- full_join(data.frame(seqId=row.names(X),X= X[,1]),
+data.frame(seqId=names(tree.p.adj),tree.p.adj=as.numeric(tree.p.adj)),by="seqId"
+)
 X <- X[,-2]
 colnames(X) <-c("ROWNAME","StructFDR")
-rownames(X) <- X$ROWNAME
+row.names(X) <- X$ROWNAME
 
-X <- merge(X,BH.p.adj,"row.names")
-row.names(X) <- X$Row.names
-X <- X[,-c(1,2)]
-colnames(X) <-c("StructFDR","BH")
-X <- merge(X,ps3@tax_table,"row.names")
+
+
+#X <- merge(X,BH.p.adj,"row.names")
+X <-  full_join(X,
+                data.frame(ROWNAME=names(BH.p.adj),BH=as.numeric(BH.p.adj)),by="ROWNAME"
+)
+#row.names(X) <- X$Row.names
+#X <- X[,-c(1,2)]
+#colnames(X) <-c("StructFDR","BH")
+
+#X <- merge(X,ps3@tax_table,"row.names")
+colnames(tax_table_df)[8] <- "ROWNAME"
+#tax_table_df$ROWNAME
+X$ROWNAME <- as.character(X$ROWNAME)
+X <- full_join(X,tax_table_df,"ROWNAME")
 
 X2 <- X[which(X$StructFDR<=0.05),]
-row.names(X2) <- X2$Row.names
+row.names(X2) <- X2$ROWNAME
 X2$Genus <- droplevels(X2$Genus)
 df_sp <- df
 row.names(df_sp) <- df_sp$Row.names
-df_sp <- merge(df_sp,X2[,c(2,3)],"row.names")
-df_sp <- df_sp[,-1]
+val <- X2[,c(2,3)];val$seqId <- row.names(val)
+#df_sp <- merge(df_sp,X2[,c(2,3)],by.x="Row.names",by.y="row.names")
+df_sp <- full_join(df_sp,val,"seqId")
+#df_sp <- df_sp[,-1]
 df_sp$Row.names <- paste0(df_sp$seqId," - ",df_sp$Family," - ",df_sp$Genus)
 #df_sp <- df_sp[which(df_sp$change_Treat3 > 1 | df_sp$change_Treat3 < - 1),]
 #df_sp <- df_sp[which(!is.na(df_sp$Genus)),]
+df_sp <- df_sp[which(!is.na(df_sp$StructFDR)),]
 
 write.csv(df_sp,paste0(out_dir,"/","csv/","taxa__dfr_TREEFDR.csv"),quote = F,row.names = F)
-          
+    
+
+df_sp_THR <- as.data.frame(cbind(df_sp$seqId,df_sp$status3_FE,df_sp$status3_Phase,df_sp$HE_gmean3,df_sp$LE_gmean3,df_sp$change_Treat3))
+colnames(df_sp_THR) <-c("seqId","status_FE","status_Phase","HE_gmean3","LE_gmean3","change_Treat3")
+df_sp_THR$HE_gmean3 <- as.numeric(as.character(df_sp_THR$HE_gmean3))
+df_sp_THR$LE_gmean3 <- as.numeric(as.character(df_sp_THR$LE_gmean3))
+df_sp_THR$change_Treat3 <- as.numeric(as.character(df_sp_THR$change_Treat3))
+
+
+df_sp_THR$a.greaterthan.b_T3 <- 
+  df_sp_THR$HE_gmean3 > df_sp_THR$LE_gmean3
 exp_plot3 <- ggplot(df_sp, aes(y=change_Treat3, x=reorder(Row.names, -change_Treat3), color=Phylum, fill=Phylum)) + 
   #geom_point(size=25) + 
   geom_bar(stat="identity")+
   geom_hline(yintercept = 0.0, color = "black", size = 1.5) +
   ylab("Log2foldchange")+
   xlab("")+
-  #geom_line()+
+#  geom_hline()+
   theme(text=element_text(size=60),
         legend.text=element_text(face="italic",size=60,colour="black"),
         axis.text.x  = element_text(face="italic",angle = -90,size=60, hjust = 0, vjust=0.5),
         axis.text.y  = element_text(face="italic",size=60,colour="black"))+
-  scale_y_continuous(limits = c(-7,8),breaks=seq(-7,8,0.5))+
+  scale_y_continuous(limits = c(-15,4),breaks=seq(-15,4,0.5))+
   coord_flip()
 #exp_plot2  
 ggsave(paste0(graph_dir,"/","log2foldchange_structFDR",".pdf"),exp_plot3,dpi=300,width =110,height=80,units = "cm",scale=1.2,limitsize = FALSE)
@@ -609,16 +856,23 @@ names(tree.p.adj2) <- names(tree.fdr.obj2$p.unadj)
 names(BH.p.adj2) <- names(tree.fdr.obj2$p.unadj)
 X2_0 <- t(ps3@otu_table)
 X2_0  <- X2_0[,1]
-X2_0 <- as.data.frame(merge(X2_0,tree.p.adj2,"row.names"))
+
+X2_0 <- full_join(data.frame(seqId=row.names(X2_0),X=X2_0[,1]),
+               data.frame(seqId=names(tree.p.adj2),tree.p.adj=as.numeric(tree.p.adj2)),by="seqId"
+)
 X2_0 <- X2_0[,-2]
 colnames(X2_0) <-c("ROWNAME","StructFDR")
-rownames(X2_0) <- X2_0$ROWNAME
+row.names(X2_0) <- X2_0$ROWNAME
+X2_0 <-  full_join(X2_0,
+                data.frame(ROWNAME=names(BH.p.adj2),BH=as.numeric(BH.p.adj2)),by="ROWNAME"
+)
 
-X2_0 <- merge(X2_0,BH.p.adj2,"row.names")
-row.names(X2_0) <- as.character(X2_0$Row.names)
-X2_0 <- X2_0[,-c(1,2)]
-colnames(X2_0) <-c("StructFDR","BH")
-X2_0 <- merge(X2_0,ps3@tax_table,"row.names")
+
+X2_0$ROWNAME <- as.character(X2_0$ROWNAME)
+X2_0 <- full_join(X2_0,tax_table_df,"ROWNAME")
+
+X2 <- X[which(X$StructFDR<=0.05),]
+row.names(X2) <- X2$ROWNAME
 
 X2_0_FINAL <- X2_0[which(X2_0$StructFDR<0.05),]
 
@@ -716,8 +970,12 @@ ggsave(paste0(graph_dir,"/","FDR_comparison_plot",".pdf"),FDR_comparison_plot,dp
 #####################################################
 #####################################################
 #Coverage per ASVs
-rel_abund_total <- melt(df[,c("Row.names","HE","LE","count_T")],"Row.names")
-rel_abund_total <- merge(rel_abund_total,df[,c("Row.names",firstup(levels))],"Row.names")
+rel_abund_total <- melt(df[,c("seqId","HE","LE","count_T")],"seqId")
+rel_abund_total <-left_join(rel_abund_total,df[,c("seqId",firstup(levels))],"seqId"
+                            )
+
+# 
+# rel_abund_total <- merge(rel_abund_total,df[,c("seqId",firstup(levels))],"Row.names")
 
 
 coverage_taxP2<- ggplot(data=rel_abund_total,aes(x=variable,y=value,fill=Phylum))+
@@ -735,7 +993,14 @@ coverage_taxP2<- ggplot(data=rel_abund_total,aes(x=variable,y=value,fill=Phylum)
 #  scale_y_continuous(limits = c(0,45),breaks=seq(0,45,5))
 coverage_taxP2
 #ggsave(paste0(graph_dir,"/","Taxonomy_coverage_current_perc",".pdf"),coverage_tax_curr_plot2,dpi=300,width =100,height=90,units = "cm",scale=1.2,limitsize = FALSE)
-###################
+
+###############################################################################################################################################################
+###############################################################################################################################################################
+###############################################################################################################################################################
+###############################################################################################################################################################
+###############################################################################################################################################################
+###############################################################################################################################################################
+###############################################################################################################################################################
 
 #FDR per taxonomic level
 
@@ -778,14 +1043,30 @@ coverage_taxP2<- ggplot(data=tax_levels_df,aes(x=tax_level,y=Abundance,fill=Trea
 #  scale_y_continuous(limits = c(0,45),breaks=seq(0,45,5))
 t_levels <- firstup(levels)
 t_levels <- t_levels[1:6]
+
+#################################################################################################################################
+#################################################################################################################################
+
+#WILCOXON PER TAXONOMICAL RANK
+
+
+#################################################################################################################################
+#################################################################################################################################
+
 dfs_tax_level <- lapply(1:length(t_levels), function(i){
-  cat("  ","\n");cat(as.character(t_levels[[i]]),"\n");  cat("  ","\n");
+  cat("  ","\n");cat(i," |",as.character(t_levels[[i]]),"\n");  cat("  ","\n");
 X_Lev   <- subset(tax_levels_df,tax_levels_df$tax_level==t_levels[[i]])
 taxa <- unique(X_Lev$taxon) 
 
 dfs <- lapply(1:length(taxa),function(j){
-cat(taxa[[j]],"\n")
+cat(i," | ",j," |",taxa[[j]],"\n")
 taxon_obj <- taxa[[j]]
+tax_subset <- subset(X_Lev,X_Lev$taxon==taxon_obj 
+                      )#$Abundance
+#tax_subset <- tax_subset[duplicated(tax_subset$sampleID),]
+
+
+#tax_subset <- tax_subset[duplicated(tax_subset$sampleID),]
 HE_S <- subset(X_Lev,X_Lev$taxon==taxon_obj & 
                  X_Lev$Treatment=="High feed efficiency" &
                  X_Lev$Phase=="solid" )$Abundance
@@ -819,19 +1100,25 @@ Solid_vs_liquid3 =if(sum(S_Sub)>0 & sum(L_Sub)>0){Solid_vs_liquid3 = wilcox.test
 Solids3 = if(sum(HE_S)>0 & sum(LE_S)>0){Solids3 = wilcox.test(x=HE_S,y=LE_S,paired=F,alternative="two.sided",exact=F,correct=F,conf.int=T,conf.level=0.95)$p.value} else {Solids3 = 1},
 Liquids3 =if(sum(HE_L)>0 & sum(LE_L)>0){Liquids3 = wilcox.test(x=HE_L,y=LE_L,paired=F,alternative="two.sided",exact=F,correct=F,conf.int=T,conf.level=0.95)$p.value} else {Liquids3 = 1},
 High_S_vs_L3 = if(sum(HE_S)>0 & sum(HE_L)>0){High_S_vs_L3 = wilcox.test(x=HE_S,y=HE_L,paired=T,alternative="two.sided",exact=F,correct=F,conf.int=T,conf.level=0.95)$p.value} else {High_S_vs_L3 = 1},
-Low_S_vs_L3 = if(sum(LE_S)>0 & sum(LE_L)>0){Low_S_vs_L3 = wilcox.test(x=LE_S,y=LE_L,paired=T,alternative="two.sided",exact=F,correct=F,conf.int=T,conf.level=0.95)$p.value} else {Low_S_vs_L3 = 1}
+Low_S_vs_L3 = if(sum(LE_S)>0 & sum(LE_L)>0){Low_S_vs_L3 = wilcox.test(x=LE_S,y=LE_L,paired=T,alternative="two.sided",exact=F,correct=F,conf.int=T,conf.level=0.95)$p.value} else {Low_S_vs_L3 = 1},
+count_per_sample = length(unique(tax_subset[which(tax_subset$Abundance>0),]$Sample)),
+  #if(sum(tax_subset!=0)>nrow(ps@otu_table)) {count_per_sample =nrow(ps@otu_table)} else {count_per_sample = sum(tax_subset!=0)},#sum(HE_S>0) + sum(HE_L>0) + sum(LE_S>0) + sum(LE_L>0),
+count_per_sample_HE = length(unique(as.character(subset(X_Lev,X_Lev$taxon==taxon_obj & X_Lev$Treatment=="High feed efficiency"  & Abundance >0)$Sample))),#sum(HE_Sub>0),
+count_per_sample_LE=  length(unique(as.character(subset(X_Lev,X_Lev$taxon==taxon_obj & X_Lev$Treatment=="Low feed efficiency" & Abundance >0)$Sample))),#sum(LE_Sub>0),
+count_per_sample_SO = length(unique(as.character(subset(X_Lev,X_Lev$taxon==taxon_obj & X_Lev$Phase=="solid" & Abundance >0)$Sample))),#sum(S_Sub>0),
+count_per_sample_LI = length(unique(as.character(subset(X_Lev,X_Lev$taxon==taxon_obj & X_Lev$Phase=="liquid" & Abundance >0)$Sample)))#sum(L_Sub>0)
 )
 
 df_pvalues[2,] <- NA
 #df_pvalues[2,1:2] <-NA 
 #df_pvalues[2,3:8] <- p.adjust(p = df_pvalues[1,3:8] , method =  "BH",n = 6)
-df_pvalues[2,] <- p.adjust(p = df_pvalues[1,] , method =  "BH",n = 6)
+df_pvalues[2,1:6] <- p.adjust(p = df_pvalues[1,1:6] , method =  "BH",n = 6)
 df_pvalues <- as.data.frame(t(df_pvalues))
 #df_pvalues[,2] <- NA;
 df_pvalues[,2]  <- as.numeric(as.character(df_pvalues[,2]))
 df_pvalues$sig <- NA
 df_pvalues$sig[which(df_pvalues[,2] <= 0.05)] <-"**"; df_pvalues$sig[which(df_pvalues[,2] > 0.05)] <-"-"; 
-colnames(df_pvalues) <- c("p.value","p.adj","sig")
+colnames(df_pvalues) <- c("p.value","p.adj","sig")#,"HE_counts","LE_counts","Solid_counts","Liquid_counts")
 df_pvalues$taxon <- taxon_obj
 df_pvalues$comparison <- row.names(df_pvalues)
 df_pvalues$taxlevel <- t_levels[[i]]
@@ -842,16 +1129,37 @@ return(df_pvalues)
 })
 
 dfs <- do.call(rbind,dfs)
+
+#dfs$count_per_sample <- NA
+
 return(dfs)
 cat("  ","\n")
 
 })
 
 
-dfs_tax_level <- do.call(rbind,dfs_tax_level)
+dfs_tax_level2 <- do.call(rbind,dfs_tax_level)
+dfs_tax_level <- dfs_tax_level2[which(dfs_tax_level2$comparison !="count_per_sample" &
+                                        dfs_tax_level2$comparison !="count_per_sample_HE" &
+                                        dfs_tax_level2$comparison !="count_per_sample_LE" &
+                                        dfs_tax_level2$comparison !="count_per_sample_SO" &
+                                        dfs_tax_level2$comparison !="count_per_sample_LI" 
+                                         ),]
+dfs_tax_level_count <- dfs_tax_level2[which(dfs_tax_level2$comparison !="High_vs_Low3" &
+                                        dfs_tax_level2$comparison !="Solid_vs_liquid3" &
+                                        dfs_tax_level2$comparison !="Solids3" &
+                                        dfs_tax_level2$comparison !="Liquids3" &
+                                        dfs_tax_level2$comparison !="High_S_vs_L3" &
+                                        dfs_tax_level2$comparison !="Low_S_vs_L3" 
+                                          
+),]
+
+dfs_tax_level_count <- dfs_tax_level_count[,1:4]
+colnames(dfs_tax_level_count)[4] <- "count"
+
 row.names(dfs_tax_level) <- 1: nrow(dfs_tax_level)
 dfs_tax_level$p.adj_total <- NA
-dfs_tax_level$p.adj_total <- p.adjust(p = dfs_tax_level$p.value, method =  "BH",n = nrow(dfs_tax_level))
+dfs_tax_level$p.adj_total <- p.adjust(p = na.omit(dfs_tax_level$p.value), method =  "BH",n = length(na.omit(dfs_tax_level$p.value)))
 dfs_tax_level$sig_total <- NA;
 dfs_tax_level$sig_total[which(dfs_tax_level$p.adj_total <= 0.05)] <-"**"; dfs_tax_level$sig_total[which(dfs_tax_level$p.adj_total > 0.05)]  <-"-";
 
@@ -877,8 +1185,13 @@ coverage_taxP3<- ggplot(data=dfs_tax_level[which(dfs_tax_level$taxlevel=="Phylum
 #+
 coverage_taxP3
 write.csv(dfs_tax_level,paste0(out_dir,"/","csv/","taxa_fdr2.csv"),quote = F,row.names = F)
+write.csv(dfs_tax_level_count,paste0(out_dir,"/","csv/","taxa_fdr2_count.csv"),quote = F,row.names = F)
+####
 
 #http://userweb.eng.gla.ac.uk/umer.ijaz/bioinformatics/ecological.html
+test_df <- data.frame(Taxa=as.character(row.names(ps@tax_table)), ps@tax_table)
+test_df$Taxa <- as.character(test_df$Taxa)
+
 composition_list_tax <- lapply(1:6,function(j){
   cat("  ","\n");cat(firstup(levels)[j],"\n")
 x <- ps_object[[j]]@otu_table
@@ -906,8 +1219,11 @@ for (i in 1:dim(new_x)[2]){
                   Type=ps_object[[j]]@sam_data$Treatment,Phase= ps_object[[j]]@sam_data$Phase)
   if(i==1){df<-tmp} else {df<-rbind(df,tmp)}
 };rm(i)
+df$Taxa <- as.character(df$Taxa)
 
-df <- merge(df,ps@tax_table,by.x="Taxa",by.y="row.names",all=T)
+
+df <- left_join(df,test_df,by="Taxa")
+#df <- merge(df,ps@tax_table,by.x="Taxa",by.y="row.names",all=T)
 df <- df[which(!is.na(df$Value)),]
 df <- df[,c(1:6,match(firstup(levels[[j]]),colnames(df)))]
 colnames(df)[ncol(df)] <- "Taxon"
@@ -983,29 +1299,57 @@ FDR_list <- list(
 )
 
 saveRDS(FDR_list,paste0(out_dir,"/","csv/","FDR_list.RDS"))
-HE_ps <- subset_taxa(ps3,ps3@sam_data$Treatment=="High feed efficiency")
+
+}else {
+  FDR_list <- readRDS(paste0(out_dir,"/","csv/","FDR_list.RDS"))
+}
+  HE_ps <- subset_taxa(ps3,ps3@sam_data$Treatment=="High feed efficiency")
 LE_ps <- subset_taxa(ps3,ps3@sam_data$Treatment=="Low feed efficiency")
 
 
+#Average counts per sample
+mean(sample_sums(ps))
+#Standard deviation of count per sample
+sd(sample_sums(ps))
 
+FDR_list
 
-
-fam_sp_prod<- table(tax_table(ps3)[,1])#table(tax_table(ps3)[,1])
+#Kingdom total reads
+king_sp_prod<- table(tax_table(ps3)[,1])#table(tax_table(ps3)[,1])
+king_sp_prod <- king_sp_prod[order(-king_sp_prod)]
+king_sp_prod_a <- king_sp_prod
+king_sp_prod_a <- (king_sp_prod_a/sum(table(tax_table(ps3)[,1])))*100
+king_sp_prod_a
+#Kingdom HE
+king_sp_prod_1 <- table(tax_table(HE_ps)[,1])#table(tax_table(ps3)[,1])
+king_sp_prod_1 <- king_sp_prod_1[order(-king_sp_prod_1)]
+king_sp_prod_1_1 <- king_sp_prod_1
+king_sp_prod_1_1 <- (king_sp_prod_1_1/sum(table(tax_table(HE_ps)[,1])))*100
+king_sp_prod_1_1
+#Kingdom LE
+king_sp_prod_2 <- table(tax_table(LE_ps)[,1])#table(tax_table(ps3)[,1])
+king_sp_prod_2 <- king_sp_prod_2[order(-king_sp_prod_2)]
+king_sp_prod_2_2 <- king_sp_prod_2
+king_sp_prod_2_2 <- (king_sp_prod_2_2/sum(table(tax_table(LE_ps)[,1])))*100
+king_sp_prod_2_2
+#########################3
+#Family total reads
+fam_sp_prod<- table(tax_table(ps3)[,5])#table(tax_table(ps3)[,1])
 fam_sp_prod <- fam_sp_prod[order(-fam_sp_prod)]
 fam_sp_prod_a <- fam_sp_prod
-fam_sp_prod_a <- (fam_sp_prod_a/sum(table(tax_table(ps3)[,1])))*100
+fam_sp_prod_a <- (fam_sp_prod_a/sum(table(tax_table(ps3)[,5])))*100
 fam_sp_prod_a
-#
-fam_sp_prod_1 <- table(tax_table(HE_ps)[,1])#table(tax_table(ps3)[,1])
+#Family HE
+fam_sp_prod_1 <- table(tax_table(HE_ps)[,5])#table(tax_table(ps3)[,1])
 fam_sp_prod_1 <- fam_sp_prod_1[order(-fam_sp_prod_1)]
 fam_sp_prod_1_1 <- fam_sp_prod_1
-fam_sp_prod_1_1 <- (fam_sp_prod_1_1/sum(table(tax_table(HE_ps)[,1])))*100
+fam_sp_prod_1_1 <- (fam_sp_prod_1_1/sum(table(tax_table(HE_ps)[,5])))*100
 fam_sp_prod_1_1
-#
-fam_sp_prod_2 <- table(tax_table(LE_ps)[,1])#table(tax_table(ps3)[,1])
+#Family LE
+fam_sp_prod_2 <- table(tax_table(LE_ps)[,5])#table(tax_table(ps3)[,1])
 fam_sp_prod_2 <- fam_sp_prod_2[order(-fam_sp_prod_2)]
 fam_sp_prod_2_2 <- fam_sp_prod_2
-fam_sp_prod_2_2 <- (fam_sp_prod_2_2/sum(table(tax_table(LE_ps)[,1])))*100
+fam_sp_prod_2_2 <- (fam_sp_prod_2_2/sum(table(tax_table(LE_ps)[,5])))*100
 fam_sp_prod_2_2
 
 
