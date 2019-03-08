@@ -22,10 +22,10 @@ library("ggvegan")
 library("dplyr")
 library("ggrepel")
 library("ggtree")
-library("data.table")
+# library("data.table")
 # library("DESeq2")
 # library("BSDA")
-library("adegenet")
+# library("adegenet")
 #install.packages("devtools")
 library("devtools")
 library("phytools")
@@ -265,8 +265,8 @@ df <- data.frame(seqId=names(HE),
                  #LE_gmean = as.numeric(lapply(1:nrow(LE_A),function(i){x2 <- median(as.numeric((LE_A/sum(HE_A,LE_A))[i,]));return(x2)})),
                  HE_gmean = as.numeric(lapply(1:nrow(HE_A),function(i){x2 <- mean(as.numeric((HE_A/sum(HE_A,LE_A))[i,]));return(x2)})),
                  LE_gmean = as.numeric(lapply(1:nrow(LE_A),function(i){x2 <- mean(as.numeric((LE_A/sum(HE_A,LE_A))[i,]));return(x2)})),
-                 HE_SD_gmean = as.numeric(lapply(1:nrow(HE_A),function(i){x2 <- sd(as.numeric((HE_A/sum(HE_A,LE_A))[i,]));return(x2)})),
-                 LE_SD_gmean = as.numeric(lapply(1:nrow(LE_A),function(i){x2 <- sd(as.numeric((LE_A/sum(HE_A,LE_A))[i,]));return(x2)})),
+                 HE_SD_gmean = as.numeric(lapply(1:nrow(HE_A),function(i){x2 <- sem_function(as.numeric((HE_A/sum(HE_A,LE_A))[i,]));return(x2)})),
+                 LE_SD_gmean = as.numeric(lapply(1:nrow(LE_A),function(i){x2 <- sem_function(as.numeric((LE_A/sum(HE_A,LE_A))[i,]));return(x2)})),
                  
                  
                  
@@ -289,8 +289,8 @@ df <- data.frame(seqId=names(HE),
                  #LI_gmean = as.numeric(lapply(1:nrow(LI_A_P),function(i){x2 <- gm_mean((LI_A_P/sum(SO_A_P,LI_A_P))[i,],na.rm = T);return(x2)})),
                  SO_gmean = as.numeric(lapply(1:nrow(SO_A_P),function(i){x2 <- mean(as.numeric((SO_A_P/sum(SO_A_P,LI_A_P))[i,]));return(x2)})),
                  LI_gmean = as.numeric(lapply(1:nrow(LI_A_P),function(i){x2 <- mean(as.numeric((LI_A_P/sum(SO_A_P,LI_A_P))[i,]));return(x2)})),
-                 SO_SD_gmean = as.numeric(lapply(1:nrow(SO_A_P),function(i){x2 <- sd(as.numeric((SO_A_P/sum(SO_A_P,LI_A_P))[i,]));return(x2)})),
-                 LI_SD_gmean = as.numeric(lapply(1:nrow(LI_A_P),function(i){x2 <- sd(as.numeric((LI_A_P/sum(SO_A_P,LI_A_P))[i,]));return(x2)})),
+                 SO_SD_gmean = as.numeric(lapply(1:nrow(SO_A_P),function(i){x2 <- sem_function(as.numeric((SO_A_P/sum(SO_A_P,LI_A_P))[i,]));return(x2)})),
+                 LI_SD_gmean = as.numeric(lapply(1:nrow(LI_A_P),function(i){x2 <- sem_function(as.numeric((LI_A_P/sum(SO_A_P,LI_A_P))[i,]));return(x2)})),
                  
                  #SO_gmean = as.numeric(lapply(1:nrow(SO_A_P),function(i){x2 <- median(as.numeric((SO_A_P/sum(SO_A_P,LI_A_P))[i,]));return(x2)})),
                  #LI_gmean = as.numeric(lapply(1:nrow(LI_A_P),function(i){x2 <- median(as.numeric((LI_A_P/sum(SO_A_P,LI_A_P))[i,]));return(x2)})),
@@ -315,8 +315,8 @@ df <- data.frame(seqId=names(HE),
                 #LE_gmean3 = as.numeric(lapply(1:nrow(LE_A_3),function(i){x2 <- gm_mean(LE_A_3[i,],na.rm = T);return(x2)})),
                 HE_gmean3 = as.numeric(lapply(1:nrow(HE_A_3),function(i){x2 <- mean(as.numeric(HE_A_3[i,]),na.rm = T);return(x2)})),
                 LE_gmean3 = as.numeric(lapply(1:nrow(LE_A_3),function(i){x2 <- mean(as.numeric(LE_A_3[i,]),na.rm = T);return(x2)})),
-                HE_SD_gmean3 = as.numeric(lapply(1:nrow(HE_A_3),function(i){x2 <- sd(as.numeric(HE_A_3[i,]),na.rm = T);return(x2)})),
-                LE_SD_gmean3 = as.numeric(lapply(1:nrow(LE_A_3),function(i){x2 <- sd(as.numeric(LE_A_3[i,]),na.rm = T);return(x2)})),
+                HE_SD_gmean3 = as.numeric(lapply(1:nrow(HE_A_3),function(i){x2 <- sem_function(as.numeric(HE_A_3[i,]));return(x2)})),
+                LE_SD_gmean3 = as.numeric(lapply(1:nrow(LE_A_3),function(i){x2 <- sem_function(as.numeric(LE_A_3[i,]));return(x2)})),
                 
                 
                 change_Treat3 =NA,
@@ -331,8 +331,8 @@ df <- data.frame(seqId=names(HE),
                 # LI_gmean3 = as.numeric(lapply(1:nrow(LI_A_P_3),function(i){x2 <- gm_mean(LI_A_P_3[i,],na.rm = T);return(x2)})),
                  SO_gmean3 = as.numeric(lapply(1:nrow(SO_A_P_3),function(i){x2 <- mean(as.numeric(SO_A_P_3[i,]),na.rm = T);return(x2)})),
                  LI_gmean3 = as.numeric(lapply(1:nrow(LI_A_P_3),function(i){x2 <- mean(as.numeric(LI_A_P_3[i,]),na.rm = T);return(x2)})),
-                SO_SD_gmean3 = as.numeric(lapply(1:nrow(SO_A_P_3),function(i){x2 <- sd(as.numeric(SO_A_P_3[i,]),na.rm = T);return(x2)})),
-                LI_SD_gmean3 = as.numeric(lapply(1:nrow(LI_A_P_3),function(i){x2 <- sd(as.numeric(LI_A_P_3[i,]),na.rm = T);return(x2)})),
+                SO_SD_gmean3 = as.numeric(lapply(1:nrow(SO_A_P_3),function(i){x2 <- sem_function(as.numeric(SO_A_P_3[i,]));return(x2)})),
+                LI_SD_gmean3 = as.numeric(lapply(1:nrow(LI_A_P_3),function(i){x2 <- sem_function(as.numeric(LI_A_P_3[i,]));return(x2)})),
                 
                 change_Phase3 =NA,
                  pvalue_Phase3 = NA,
@@ -1092,9 +1092,7 @@ L_Sub <- subset(X_Lev,X_Lev$taxon==taxon_obj &
                    X_Lev$Phase=="liquid")$Abundance
 require(plotrix)
 df_pvalues <- data.frame(
-  # High_mean = paste0(round(mean(HE_Sub),3),"±",round(std.error(HE_Sub),3)),
-  # Low_mean = paste0(round(mean(LE_Sub),3),"±",round(std.error(LE_Sub),3)),
-  
+    
 High_vs_Low3 = if(sum(HE_Sub)>0 & sum(LE_Sub)>0){High_vs_Low3 = wilcox.test(x=HE_Sub,y=LE_Sub,paired=F,alternative="two.sided",exact=F,correct=F,conf.int=T,conf.level=0.95)$p.value} else {High_vs_Low3 = 1},
 Solid_vs_liquid3 =if(sum(S_Sub)>0 & sum(L_Sub)>0){Solid_vs_liquid3 = wilcox.test(x=S_Sub,y=L_Sub,paired=T,alternative="two.sided",exact=F,correct=F,conf.int=T,conf.level=0.95)$p.value} else {Solid_vs_liquid3 = 1},
 Solids3 = if(sum(HE_S)>0 & sum(LE_S)>0){Solids3 = wilcox.test(x=HE_S,y=LE_S,paired=F,alternative="two.sided",exact=F,correct=F,conf.int=T,conf.level=0.95)$p.value} else {Solids3 = 1},
@@ -1106,7 +1104,10 @@ count_per_sample = length(unique(tax_subset[which(tax_subset$Abundance>0),]$Samp
 count_per_sample_HE = length(unique(as.character(subset(X_Lev,X_Lev$taxon==taxon_obj & X_Lev$Treatment=="High feed efficiency"  & Abundance >0)$Sample))),#sum(HE_Sub>0),
 count_per_sample_LE=  length(unique(as.character(subset(X_Lev,X_Lev$taxon==taxon_obj & X_Lev$Treatment=="Low feed efficiency" & Abundance >0)$Sample))),#sum(LE_Sub>0),
 count_per_sample_SO = length(unique(as.character(subset(X_Lev,X_Lev$taxon==taxon_obj & X_Lev$Phase=="solid" & Abundance >0)$Sample))),#sum(S_Sub>0),
-count_per_sample_LI = length(unique(as.character(subset(X_Lev,X_Lev$taxon==taxon_obj & X_Lev$Phase=="liquid" & Abundance >0)$Sample)))#sum(L_Sub>0)
+count_per_sample_LI = length(unique(as.character(subset(X_Lev,X_Lev$taxon==taxon_obj & X_Lev$Phase=="liquid" & Abundance >0)$Sample)))#,#sum(L_Sub>0)
+# HFE_average = paste0(round(mean(HE_Sub),3),"±",round(sem_function(HE_Sub),3)),
+# LFE_average = paste0(round(mean(LE_Sub),3),"±",round(sem_function(LE_Sub),3))
+
 )
 
 df_pvalues[2,] <- NA
@@ -1139,18 +1140,27 @@ cat("  ","\n")
 
 
 dfs_tax_level2 <- do.call(rbind,dfs_tax_level)
+# dfs_tax_level3 <- dfs_tax_level2[which(dfs_tax_level2$comparison =="HFE_average" |
+#                                          dfs_tax_level2$comparison =="LFE_average"
+#                                        ),]
+# dfs_tax_level3 <- dfs_tax_level3[,-c(5,6)]
+# colnames(dfs_tax_level3) <- c("taxlevel","taxon","cohort","value")
 dfs_tax_level <- dfs_tax_level2[which(dfs_tax_level2$comparison !="count_per_sample" &
                                         dfs_tax_level2$comparison !="count_per_sample_HE" &
                                         dfs_tax_level2$comparison !="count_per_sample_LE" &
                                         dfs_tax_level2$comparison !="count_per_sample_SO" &
-                                        dfs_tax_level2$comparison !="count_per_sample_LI" 
+                                        dfs_tax_level2$comparison !="count_per_sample_LI" &
+                                        dfs_tax_level2$comparison !="HFE_average" &
+                                        dfs_tax_level2$comparison !="LFE_average"
                                          ),]
 dfs_tax_level_count <- dfs_tax_level2[which(dfs_tax_level2$comparison !="High_vs_Low3" &
                                         dfs_tax_level2$comparison !="Solid_vs_liquid3" &
                                         dfs_tax_level2$comparison !="Solids3" &
                                         dfs_tax_level2$comparison !="Liquids3" &
                                         dfs_tax_level2$comparison !="High_S_vs_L3" &
-                                        dfs_tax_level2$comparison !="Low_S_vs_L3" 
+                                        dfs_tax_level2$comparison !="Low_S_vs_L3" &
+                                          dfs_tax_level2$comparison !="HFE_average" &
+                                          dfs_tax_level2$comparison =="LFE_average"
                                           
 ),]
 
@@ -1165,7 +1175,7 @@ dfs_tax_level$sig_total[which(dfs_tax_level$p.adj_total <= 0.05)] <-"**"; dfs_ta
 
 dfs_tax_level <- dfs_tax_level[which(dfs_tax_level$sig_total=="**"),]
 
-dfs_tax_level[which(dfs_tax_level$taxlevel=="Phylum"),]
+# dfs_tax_level[which(dfs_tax_level$taxlevel=="Phylum"),]
 coverage_taxP3<- ggplot(data=dfs_tax_level[which(dfs_tax_level$taxlevel=="Phylum"),],
                         aes(x=comparison,y=p.adj_total,fill=taxon,colour=taxon))+
    geom_bar(stat="identity",show.legend = T,position = "dodge")+
@@ -1186,6 +1196,76 @@ coverage_taxP3<- ggplot(data=dfs_tax_level[which(dfs_tax_level$taxlevel=="Phylum
 coverage_taxP3
 write.csv(dfs_tax_level,paste0(out_dir,"/","csv/","taxa_fdr2.csv"),quote = F,row.names = F)
 write.csv(dfs_tax_level_count,paste0(out_dir,"/","csv/","taxa_fdr2_count.csv"),quote = F,row.names = F)
+
+
+
+##################################################################################################
+##################################################################################################
+dfs_tax_level_summ <- lapply(1:length(t_levels), function(i){
+  cat("  ","\n");cat(i," |",as.character(t_levels[[i]]),"\n");  cat("  ","\n");
+  X_Lev   <- subset(tax_levels_df,tax_levels_df$tax_level==t_levels[[i]])
+  taxa <- unique(X_Lev$taxon) 
+  
+  dfs <- lapply(1:length(taxa),function(j){
+    cat(i," | ",j," |",taxa[[j]],"\n")
+    taxon_obj <- taxa[[j]]
+    tax_subset <- subset(X_Lev,X_Lev$taxon==taxon_obj 
+    )#$Abundance
+    #tax_subset <- tax_subset[duplicated(tax_subset$sampleID),]
+    
+    
+    #tax_subset <- tax_subset[duplicated(tax_subset$sampleID),]
+    HE_S <- subset(X_Lev,X_Lev$taxon==taxon_obj & 
+                     X_Lev$Treatment=="High feed efficiency" &
+                     X_Lev$Phase=="solid" )$Abundance
+    HE_L <- subset(X_Lev,X_Lev$taxon==taxon_obj & 
+                     X_Lev$Treatment=="High feed efficiency" &
+                     X_Lev$Phase=="liquid" )$Abundance
+    LE_S <- subset(X_Lev,X_Lev$taxon==taxon_obj & 
+                     X_Lev$Treatment=="Low feed efficiency" &
+                     X_Lev$Phase=="solid" )$Abundance
+    LE_L <- subset(X_Lev,X_Lev$taxon==taxon_obj & 
+                     X_Lev$Treatment=="Low feed efficiency" &
+                     X_Lev$Phase=="liquid" )$Abundance
+    HE_Sub <- subset(X_Lev,X_Lev$taxon==taxon_obj & 
+                       X_Lev$Treatment=="High feed efficiency")$Abundance
+    
+    LE_Sub <- subset(X_Lev,X_Lev$taxon==taxon_obj & 
+                       X_Lev$Treatment=="Low feed efficiency")$Abundance
+    
+    S_Sub <- subset(X_Lev,X_Lev$taxon==taxon_obj & 
+                      X_Lev$Phase=="solid")$Abundance
+    
+    L_Sub <- subset(X_Lev,X_Lev$taxon==taxon_obj & 
+                      X_Lev$Phase=="liquid")$Abundance
+    require(plotrix)
+    
+    df_summary <- data.frame(
+      HFE_average = mean(HE_Sub),
+      HFE_SEM = sem_function(HE_Sub),
+      
+      LFE_average = mean(LE_Sub),
+      LFE_SEM = sem_function(HE_Sub)
+    )
+    
+    df_summary$taxon <- taxon_obj
+    df_summary$comparison <- row.names(df_summary)
+    df_summary$taxlevel <- t_levels[[i]]
+    
+    return(df_summary)
+  })
+    
+  dfs <- do.call(rbind,dfs)
+
+  
+  
+})
+
+dfs_tax_level_summ <- do.call(rbind,dfs_tax_level_summ)
+write.csv(dfs_tax_level_summ,paste0(out_dir,"/","csv/","taxa_fdr2_summary.csv"),quote = F,row.names = F)
+
+##################################################################################################
+##################################################################################################
 ####
 
 #http://userweb.eng.gla.ac.uk/umer.ijaz/bioinformatics/ecological.html
@@ -1281,11 +1361,31 @@ ggsave(paste0(graph_dir,"/","compoplot_",names(composition_list_tax)[[1]],".pdf"
 #############################################
 #############################################
 
-
+lapply(1:length(composition_list_tax),function(i){
+  cat(i,"\n")
+  colours <- c("#F0A3FF", "#0075DC", "#993F00","#4C005C","#2BCE48","#FFCC99","#808080","#94FFB5","#8F7C00","#9DCC00","#C20088","#003380","#FFA405","#FFA8BB","#426600","#FF0010","#5EF1F2","#00998F","#740AFF","#990000","#FFFF00");
+  N <- 17
+  library(ggplot2)
+  p<-ggplot(composition_list_tax[[i]],aes(Taxon,Value*100,fill=Type))+
+    # geom_bar(stat="identity")+
+    geom_boxplot(aes(fill=Type)) +
+    stat_boxplot(geom ='errorbar') +
+    ylab("Relative abundance (%)")+
+    # stat_summary(fun.y=mean, geom="line", aes(group=1))  +
+    # stat_summary(fun.y=mean, geom="point")+
+    scale_fill_manual("Breed", values = c("blue","red","green"))
+  
+  p <- p+theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5,size=60),
+               text=element_text(size=60),
+               axis.text.y  = element_text(size=60,colour="black"))
+  
+  ggsave(paste0(graph_dir,"/","compoplot_",names(composition_list_tax)[[i]],"_BP_abundance.pdf"),p,dpi=300,width =150,height=90,units = "cm",scale=1.2,limitsize = FALSE)
+  
+})
+#############################################
+#############################################
 composition_list_tax2 <- composition_list_tax
-for(i in 1:length(composition_list_tax2)){
-  composition_list_tax2[[i]]$Value[which(composition_list_tax2[[i]]$Value>0)] <- 1
-  };rm(i)
+for(i in 1:length(composition_list_tax2)){ };rm(i)
 
 
 

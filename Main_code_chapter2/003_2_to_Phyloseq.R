@@ -29,7 +29,7 @@ library("data.table")
 # mainDir <- "/home/csosa"
 # chapter <- "chapter_1"
 mainDir <- "E:/DADA2"
-chapter <- "chapter_1"
+chapter <- "chapter_2"
 levels <- c("kingdom","phylum","class","order","family","genus","species")
 #Defining workspace folders
 dat_dir <- paste0(mainDir,"/",chapter,"/","data"); if(!file.exists(dat_dir)){dir.create(dat_dir)}
@@ -53,28 +53,30 @@ production_dir <- paste0(dat_dir,"/","production"); if(!file.exists(production_d
 
 #Calling production data
 production <- read.csv(paste0(production_dir,"/","production_data.csv"),header=T,sep=",")
-production$Treatment <- gsub("bottom","Low feed efficiency",production$Treatment); production$Treatment <- gsub("top","High feed efficiency",production$Treatment)
-production$ADG_Treatment <- gsub("bottom","Low feed efficiency",production$Treatment); production$Treatment <- gsub("top","High feed efficiency",production$Treatment)
+production$FCR_Treatment <- gsub("bottom","Low feed efficiency",production$FCR_Treatment); production$FCR_Treatment <- gsub("top","High feed efficiency",production$FCR_Treatment)
+production$ADG_Treatment <- gsub("bottom","Low feed efficiency",production$ADG_Treatment); production$ADG_Treatment <- gsub("top","High feed efficiency",production$ADG_Treatment)
 
-production_LE <- production[which(production$Treatment=="Low feed efficiency"),]
-production_HE <- production[which(production$Treatment=="High feed efficiency"),]
+production_LE <- production[which(production$ADG_Treatment=="Low feed efficiency"),]
+production_HE <- production[which(production$ADG_Treatment=="High feed efficiency"),]
+
+
 
 summary_Production <- data.frame(
-HE_FCR = paste0(round(mean(production_HE$FCE),2)," ± ",round(sd(production_HE$FCE),2)),
-LE_FCR = paste0(round(mean(production_LE$FCE),2)," ± ",round(sd(production_LE$FCE),2)),
-HE_ADI = paste0(round(mean(production_HE$av.dailyintake),2)," ± ",round(sd(production_HE$av.dailyintake),2)),
-LE_ADI = paste0(round(mean(production_LE$av.dailyintake),2)," ± ",round(sd(production_LE$av.dailyintake),2)),
-HE_ADG = paste0(round(mean(production_HE$ADG),2)," ± ",round(sd(production_HE$ADG),2)),
-LE_ADG = paste0(round(mean(production_LE$ADG),2)," ± ",round(sd(production_LE$ADG),2)),
-HE_TWG = paste0(round(mean(production_HE$total.wt.Gain),2)," ± ",round(sd(production_HE$total.wt.Gain),2)),
-HE_TWG = paste0(round(mean(production_LE$total.wt.Gain),2)," ± ",round(sd(production_LE$total.wt.Gain),2))
+HE_FCR = paste0(round(mean(production_HE$FCR,na.rm=T),2)," ± ",round(sd(production_HE$FCR,na.rm=T),2)),
+LE_FCR = paste0(round(mean(production_LE$FCR,na.rm=T),2)," ± ",round(sd(production_LE$FCR,na.rm=T),2)),
+# HE_ADI = paste0(round(mean(production_HE$av.dailyintake,na.rm=T),2)," ± ",round(sd(production_HE$av.dailyintake,na.rm=T),2)),
+# LE_ADI = paste0(round(mean(production_LE$av.dailyintake,na.rm=T),2)," ± ",round(sd(production_LE$av.dailyintake,na.rm=T),2)),
+HE_ADG = paste0(round(mean(production_HE$ADG,na.rm=T),2)," ± ",round(sd(production_HE$ADG,na.rm=T),2)),
+LE_ADG = paste0(round(mean(production_LE$ADG,na.rm=T),2)," ± ",round(sd(production_LE$ADG,na.rm=T),2))
+# HE_TWG = paste0(round(mean(production_HE$total.wt.Gain,na.rm=T),2)," ± ",round(sd(production_HE$total.wt.Gain,na.rm=T),2)),
+# HE_TWG = paste0(round(mean(production_LE$total.wt.Gain),na.rm=T,2)," ± ",round(sd(production_LE$total.wt.Gain,na.rm=T),2))
 )
 #Calling table sequence
 #seqtab.nochim <- readRDS(paste0(seq_dir,"/","seqtab.nochim.RDS"))
 asv5 <- readRDS(paste0(out_dir,"/","csv","/","taxonomy_final.RDS"))
 seqid<-cbind(as.character(asv5$seq_id),as.character(asv5$final_taxon))
 colnames(seqid) <- c("seqid","final_taxon")
-samples.out <- colnames(asv5)[3:54]#rownames(seqtab.nochim)
+samples.out <- colnames(asv5)[3:50]#rownames(seqtab.nochim)
 #Importing tree
 tree_imp <- phyloseq::read_tree(paste0(seq_dir,"/","pml.tree"),errorIfNULL = T);tree2 <- tree_imp
 labels_T <- as.data.frame(matrix(ncol=1,nrow=length(tree_imp$tip.label)));colnames(labels_T) <- c("seqid")
@@ -117,23 +119,37 @@ ggsave(paste0(graph_dir,"/","taxomomic_depth_reads",".pdf"),tc1bp,dpi=300,width 
 
 ####################################################
 #samples.out <- as.numeric(as.character(samples.out))
-subject <- sapply(strsplit(samples.out, "D"), `[`, 1)
-subject <- as.numeric(as.character(subject));subject2 <- as.data.frame(subject);colnames(subject2) <- "Reference.number"
-prod <- dplyr::full_join(subject2,production,by="Reference.number")
+  subject <- sapply(strsplit(samples.out, "-"), `[`, 1)
+#subject <- as.numeric(as.character(subject));
+production$sampleID <- as.factor(production$sampleID)
+subject2 <- as.data.frame(subject);colnames(subject2) <- "sampleID"#"Reference.number"
+prod <- dplyr::full_join(subject2,production,by="sampleID")#"Reference.number")
 #prod <- join(subject2,production,by="Reference.number",match="all")
-
+prod <- prod[!duplicated(prod$ID),]
 
 #(my_data) <- c("ADG","FCR","Average daily intake","pH","Total weight gain","Treatment")
-samdf <- data.frame(Subject=subject,
-                    sampleID=prod$Sample_ID,
-                    Treatment=prod$Treatment,
+samdf <- data.frame(Subject=prod$subject,
+                    sampleID=prod$sampleID,
+                    ADG_Treatment = prod$ADG_Treatment,
+                    Treatment=prod$FCR_Treatment,
                     Phase=prod$Phase,
-                    pH=prod$Rumen.pH.,
+                    pH=prod$pH,
                     ADG=prod$ADG,
-                    FCR=prod$FCE,
-                    Average_daily_intake=prod$av.dailyintake,
-                    Total_weight_gain=prod$total.wt.Gain)
-rownames(samdf) <- samples.out
+                    FCR=prod$FCR,
+                    R_weight_full = prod$R_weight_full,
+                    R_weight_empty = prod$R_weight_empty,
+                    Live_weight = prod$LW,
+                    Dead_weight = prod$DW,
+                    Breed = prod$Breed,
+                    LW.Gain = prod$LW.Gain
+                    # Average_daily_intake=prod$av.dailyintake,
+                    # Total_weight_gain=prod$total.wt.Gain
+                    )
+
+samdf <- samdf[samdf$Subject %in% colnames(asv5)[3:47],]
+
+rownames(samdf) <- samdf$Subject#prod$subject #samples.out[]
+
 
 taxa <- cbind(as.character(asv5$kingdom),
               as.character(asv5$phylum),
@@ -152,9 +168,9 @@ colnames(taxa) <- c("Kingdom","Phylum","Class","Order","Family","Genus","Species
 ##################################################
 #Formatting to phyloseq library
 
-seq_samples <- t(asv5[,3:54])
+seq_samples <- t(asv5[,3:45])
 colnames(seq_samples) <- asv5$seq_id
-row.names(seq_samples) <- colnames(asv5[,3:54])
+row.names(seq_samples) <- colnames(asv5[,3:45])
 ps <- phyloseq::phyloseq(otu_table(seq_samples, taxa_are_rows=FALSE),#seqtab.nochim, taxa_are_rows=FALSE), 
                sample_data(samdf), 
                tax_table(taxa),#,
@@ -226,8 +242,8 @@ pCumSum = ggplot(taxcumsum, aes(log(TotalCounts), log(CumSum))) +
 ggsave(paste0(graph_dir,"/","OTU_counts",".pdf"),pCumSum,dpi=600,width =90,height=80,units = "cm",scale=0.8,limitsize = FALSE)
 pCumSum
 ##################################################
-colnames(asv5)[95:101] <- paste0("SUGGESTED_",colnames(asv5)[95:101])
-dbs <- c("SILVA","RDP","GG","BLAST","HUNGATE","SUGGESTED")
+colnames(asv5)[91:97] <- paste0("SUGGESTED_",colnames(asv5)[91:97])
+dbs <- c("SILVA","BLAST","HUNGATE","SUGGESTED")
 
 list_counts_sp <- list()
 
@@ -236,6 +252,7 @@ list_counts_sp <- list()
 #  cat(k,"\n")
 
 list_counts_db <- lapply(1:length(dbs),function(i){
+  cat(i,"\n")
         db_u <- dbs[i]
 list_counts_sp <- lapply(1:length(levels),function(j){
 x <- as.data.frame(table(asv5[,paste0(db_u,"_",levels[j])]))
@@ -266,4 +283,5 @@ p4 <- p4 + #geom_text(data=list_counts_db_k, aes(x = db, y = rel_per,
 p4
 
 # })
+
 

@@ -11,6 +11,7 @@ require("Biostrings")
 require("devtools")
 require("taxize")
 require("rentrez")
+#require("usethis")
 #install_github("mhahsler/rBLAST")
 require("rBLAST")
 
@@ -23,7 +24,7 @@ blast_n_path <- "C:/Program Files/NCBI/blast-2.7.1+/bin"
 Sys.setenv(PATH = paste(Sys.getenv("PATH"), blast_n_path , sep= .Platform$path.sep))
 Sys.which("blastn")
 blast_folder <- "E:/DB_DADA2/NCBI/16SMicrobial"
-key_NCBI <- "ee630947ebb03dea7f2e757a53ea2ae29208"
+key_NCBI <- "3208f1eeb984a1b7ebf5d567133d9caf8909"
 
 #Defining workspace folders
 dat_dir <- paste0(mainDir,"/",chapter,"/","data"); if(!file.exists(dat_dir)){dir.create(dat_dir)}
@@ -82,6 +83,7 @@ class_match1 <- lapply(1:nrow(blast_match),function(i){
 
   return(clasif2)
 })
+
 
 #Organizing NCBI taxonomy
 blast_matrix <- as.data.frame(matrix(ncol=8,nrow=nrow(blast_match)))

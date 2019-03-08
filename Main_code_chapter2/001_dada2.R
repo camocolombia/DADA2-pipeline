@@ -24,7 +24,7 @@ library("ggExtra")
 # mainDir <- "/home/csosa"
 # chapter <- "chapter_1"
 mainDir <- "E:/DADA2"
-chapter <- "chapter_1"
+chapter <- "chapter_2"
 
 #Defining workspace folders
 dat_dir <- paste0(mainDir,"/",chapter,"/","data"); if(!file.exists(dat_dir)){dir.create(dat_dir)}

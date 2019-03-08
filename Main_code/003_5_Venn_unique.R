@@ -294,7 +294,7 @@ veen_four <- draw.quad.venn(
   category = c("High feed efficiency (Solid)", "High feed efficiency (Liquid)",
                "Low feed efficiency (Solid)","Low feed efficiency (Liquid)"),
   lty = "blank", 
-  cex=6,
+  cex=10,
   cat.cex = 6,
   fill = c("darkblue", "green", "orange","red"))
 

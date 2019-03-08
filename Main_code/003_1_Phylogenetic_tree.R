@@ -75,7 +75,7 @@ write.dna(blocks,format = "fasta",file = paste0(seq_dir,"/","ASVs_GBlocks.fasta"
 #Converting to phyDat object to be used in phangorn
 blocks_phyDat <- phyDat(blocks, type = "DNA", levels = NULL)
 #Calculating best Nucleotide Substitution model
-modelTest_phy <-phangorn::modelTest(blocks_phyDat,multicore=T,mc.cores=2);gc()
+modelTest_phy <-phangorn::modelTest(blocks_phyDat,multicore=T,mc.cores=1);gc()
 saveRDS(modelTest_phy,paste0(seq_dir,"/","modelTest.RDS"))
 #Calculating pairwise distancces using the substitution model
 dna_dist <- phangorn::dist.ml(blocks_phyDat, model=modelTest_phy$Model[1])
