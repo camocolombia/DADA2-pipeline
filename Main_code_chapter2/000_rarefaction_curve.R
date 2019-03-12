@@ -86,7 +86,7 @@ ggrare <- function(physeq_object, step = 10, label = NULL, color = NULL, plot = 
 }
 
 mainDir <- "E:/DADA2"
-chapter <- "chapter_1"
+chapter <- "chapter_2"
 levels <- c("kingdom","phylum","class","order","family","genus","species")
 #Defining workspace folders
 dat_dir <- paste0(mainDir,"/",chapter,"/","data"); if(!file.exists(dat_dir)){dir.create(dat_dir)}
@@ -111,8 +111,11 @@ production_dir <- paste0(dat_dir,"/","production"); if(!file.exists(production_d
 
 ps <- readRDS(paste0(csv_dir,"/","Phyloseq_object_filter",".RDS"))
 
-p <- ggrare(ps, step = 50, label = "Subject", color = "Treatment", plot = TRUE, parallel = FALSE, se = TRUE)
-p2 <- p + facet_wrap(~Treatment)
+# p <- ggrare(ps, step = 50, label = "Subject", color = "Treatment", plot = TRUE, parallel = FALSE, se = TRUE)
+# p2 <- p + facet_wrap(~Treatment)
+
+p <- ggrare(ps, step = 50, label = "Subject", color = "Breed", plot = TRUE, parallel = FALSE, se = TRUE)
+p2 <- p + facet_wrap(~Breed)
 p2 <- p2 + theme(text=element_text(size=80),
                                legend.text=element_text(size=60),
                                axis.text.x = element_text(angle = 90, hjust = 1,size=60,colour="black"),
@@ -120,4 +123,4 @@ p2 <- p2 + theme(text=element_text(size=80),
                                strip.text.x = element_text(size = 80))
 
 
-ggsave(paste0(graph_dir,"/","Rarefaction_curves",".pdf"),p2,dpi=600,width =240,height=90,units = "cm",scale=0.8,limitsize = FALSE)
+ggsave(paste0(graph_dir,"/","Rarefaction_curves_filtered",".pdf"),p2,dpi=600,width =240,height=90,units = "cm",scale=0.8,limitsize = FALSE)
